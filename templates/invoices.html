@@ -24,6 +24,7 @@
         .btn-delete:hover { background: #dc2626; }
         .empty-state { text-align: center; padding: 40px; color: #9ca3af; }
         .logout-btn { background: #dc2626; color: white; padding: 6px 12px; border-radius: 6px; text-decoration: none; margin-left: 10px; }
+        .total-row { background: #f9fafb; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -72,7 +73,10 @@
                     <tr><td colspan="7" class="empty-state">Đang tải...</td></tr>
                 </tbody>
                 <tfoot>
-                    <tr><td colspan="6"><strong>TỔNG CỘNG:</strong></td><td id="totalAmount"><strong>0đ</strong></td></tr>
+                    <tr class="total-row">
+                        <td colspan="6"><strong>TỔNG CỘNG:</strong></td>
+                        <td id="totalAmount"><strong>0đ</strong></td>
+                    </tr>
                 </tfoot>
             </table>
         </div>
@@ -88,13 +92,17 @@
             if (startDate) url += `&start_date=${startDate}`;
             if (endDate) url += `&end_date=${endDate}`;
             
+            console.log('Đang gọi API:', url);
+            
             try {
-                const res = await fetch(url);
-                const invoices = await res.json();
-                const tbody = document.getElementById('invoiceList');
-                const totalSpan = document.getElementById('totalAmount');
+                const response = await fetch(url);
+                const invoices = await response.json();
                 
                 console.log('Dữ liệu nhận được:', invoices);
+                console.log('Số lượng hóa đơn:', invoices.length);
+                
+                const tbody = document.getElementById('invoiceList');
+                const totalSpan = document.getElementById('totalAmount');
                 
                 if (!invoices || invoices.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Không có hóa đơn nào</td></tr>';
@@ -105,7 +113,7 @@
                 let totalAll = 0;
                 let html = '';
                 
-                for (const inv of invoices) {
+                for (let inv of invoices) {
                     const subtotal = (inv.quantity || 0) * (inv.price || 0);
                     totalAll += subtotal;
                     const date = new Date(inv.created_at);
@@ -126,27 +134,32 @@
                 
                 tbody.innerHTML = html;
                 totalSpan.innerHTML = `<strong>${formatMoney(totalAll)}</strong>`;
-            } catch(e) {
-                console.error('Lỗi loadInvoices:', e);
-                document.getElementById('invoiceList').innerHTML = '<tr><td colspan="7" class="empty-state">Lỗi tải dữ liệu: ' + e.message + '</td></tr>';
+                
+            } catch (error) {
+                console.error('Lỗi khi tải hóa đơn:', error);
+                document.getElementById('invoiceList').innerHTML = `<tr><td colspan="7" class="empty-state">Lỗi: ${error.message}</td></tr>`;
             }
         }
         
         async function deleteInvoice(orderNumber) {
-            if (!confirm(`Bạn có chắc muốn xóa hóa đơn ${orderNumber}?`)) return;
+            if (!confirm(`Bạn có chắc muốn xóa hóa đơn ${orderNumber}?`)) {
+                return;
+            }
             
             try {
-                const res = await fetch(`/api/invoices/${orderNumber}`, { method: 'DELETE' });
-                const result = await res.json();
+                const response = await fetch(`/api/invoices/${orderNumber}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
                 
                 if (result.success) {
-                    alert('Xóa thành công!');
-                    loadInvoices();
+                    alert('Xóa hóa đơn thành công!');
+                    loadInvoices(); // Tải lại danh sách
                 } else {
                     alert('Lỗi: ' + (result.error || 'Không thể xóa'));
                 }
-            } catch(e) {
-                alert('Lỗi: ' + e.message);
+            } catch (error) {
+                alert('Lỗi: ' + error.message);
             }
         }
         
@@ -166,12 +179,13 @@
             return div.innerHTML;
         }
         
-        // Set default dates (đầu tháng đến hôm nay)
+        // Set ngày mặc định (đầu tháng đến hôm nay)
         const today = new Date();
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
         document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
         document.getElementById('endDate').value = today.toISOString().split('T')[0];
         
+        // Tải dữ liệu khi trang load
         loadInvoices();
     </script>
 </body>
