@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo cáo - CỬA HÀNG MINH THIÊN PHÚC</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f3f4f6; }
+        .header { background: #3b82f6; color: white; padding: 16px; }
+        .header h1 { font-size: 1.1rem; text-align: center; }
+        .nav-links { display: flex; justify-content: center; gap: 20px; margin-top: 12px; flex-wrap: wrap; }
+        .nav-links a { color: #e0e7ff; text-decoration: none; padding: 6px 12px; font-size: 0.85rem; }
+        .nav-links a:hover { color: white; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .month-stats { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px; }
+        .stat-box { text-align: center; padding: 15px; background: rgba(255,255,255,0.2); border-radius: 10px; }
+        .stat-value { font-size: 1.5rem; font-weight: bold; }
+        .stat-label { font-size: 0.8rem; opacity: 0.9; }
+        .revenue-summary { text-align: center; padding: 15px; background: rgba(255,255,255,0.15); border-radius: 10px; margin-top: 10px; }
+        .revenue-number { font-size: 2rem; font-weight: bold; }
+        .stats-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+        .stat-card { background: white; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stat-card .stat-value { font-size: 1.8rem; font-weight: bold; color: #1f2937; }
+        .stat-card .stat-label { font-size: 0.75rem; color: #6b7280; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: center; border-bottom: 1px solid #e5e7eb; }
+        th { background: #f9fafb; font-weight: 600; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .btn { padding: 8px 16px; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; }
+        .btn.active { background: #3b82f6; color: white; }
+        .logout-btn { background: #dc2626; color: white; padding: 6px 12px; border-radius: 6px; text-decoration: none; margin-left: 10px; }
+        .total-row { background: #f3f4f6; font-weight: bold; }
+        .date-input { display: flex; gap: 10px; align-items: center; margin-left: auto; }
+        .date-input input { padding: 8px; border: 1px solid #e5e7eb; border-radius: 8px; }
+        .date-input button { padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>BÁO CÁO THỐNG KÊ</h1>
+        <div class="nav-links">
+            <a href="/">BÁN HÀNG</a>
+            <a href="/products">SẢN PHẨM</a>
+            <a href="/customers">KHÁCH HÀNG</a>
+            <a href="/reports">BÁO CÁO</a>
+            <a href="/invoices">HÓA ĐƠN</a>
+            <a href="/logout" class="logout-btn">ĐĂNG XUẤT</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Thống kê tháng này -->
+        <div class="month-stats">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3>Tháng này</h3>
+                <span id="invoiceCount">0</span> hoá đơn
+            </div>
+            <div class="stats-row">
+                <div class="stat-box"><div class="stat-label">DOANH THU</div><div class="stat-value" id="monthRevenue">0đ</div></div>
+                <div class="stat-box"><div class="stat-label">LỢI NHUẬN</div><div class="stat-value" id="monthProfit">0đ</div></div>
+                <div class="stat-box"><div class="stat-label">SẢN PHẨM BÁN RA</div><div class="stat-value" id="totalSoldMonth">0</div></div>
+            </div>
+            <div class="revenue-summary"><div class="revenue-number" id="totalRevenue">0đ</div><div>Tổng quan doanh thu</div></div>
+        </div>
+        
+        <!-- Thống kê nhanh -->
+        <div class="stats-overview">
+            <div class="stat-card"><div class="stat-label">TỔNG SẢN PHẨM</div><div class="stat-value" id="totalProducts">-</div></div>
+            <div class="stat-card"><div class="stat-label">TỔNG KHÁCH HÀNG</div><div class="stat-value" id="totalCustomers">-</div></div>
+            <div class="stat-card"><div class="stat-label">TỔNG ĐƠN HÀNG</div><div class="stat-value" id="totalOrders">-</div></div>
+        </div>
+        
+        <!-- Bảng chi tiết -->
+        <div class="card">
+            <h3>📊 THỐNG KÊ DOANH THU CHI TIẾT</h3>
+            <div class="btn-group">
+                <button class="btn active" onclick="loadReport('day', this)">THEO NGÀY</button>
+                <button class="btn" onclick="loadReport('month', this)">THEO THÁNG</button>
+                <button class="btn" onclick="loadReport('year', this)">THEO NĂM</button>
+                <div class="date-input">
+                    <input type="date" id="customDate">
+                    <button onclick="loadCustomReport()">XEM</button>
+                </div>
+            </div>
+            <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th id="colLabel">KỲ</th>
+                            <th>SỐ ĐƠN</th>
+                            <th>SỐ LƯỢNG SP</th>
+                            <th>DOANH THU</th>
+                        </thead>
+                    <tbody id="tableBody">
+                        <tr><td colspan="5">Đang tải...</td</tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td colspan="3">TỔNG CỘNG</td>
+                            <td id="totalQuantity">0</td>
+                            <td id="totalAmount">0đ</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Biểu đồ -->
+        <div class="card">
+            <h3>📈 BIỂU ĐỒ DOANH THU</h3>
+            <canvas id="revenueChart" style="max-height: 300px;"></canvas>
+        </div>
+        
+        <!-- Top sản phẩm -->
+        <div class="card">
+            <h3>🏆 TOP SẢN PHẨM BÁN CHẠY</h3>
+            <div id="topProductsList">Đang tải...</div>
+        </div>
+    </div>
+    
+    <script>
+        let currentChart = null;
+        let currentReportType = 'day';
+        
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                document.getElementById('totalProducts').innerText = data.total_products || 0;
+                document.getElementById('totalCustomers').innerText = data.total_customers || 0;
+                document.getElementById('totalOrders').innerText = data.total_orders || 0;
+                
+                if (data.top_products && data.top_products.length > 0) {
+                    document.getElementById('topProductsList').innerHTML = data.top_products.map((p, i) => 
+                        `<div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #e5e7eb;">
+                            <span>${i+1}. ${p.name}</span>
+                            <span style="color:#dc2626;">Đã bán: ${p.total_sold}</span>
+                        </div>`
+                    ).join('');
+                } else {
+                    document.getElementById('topProductsList').innerHTML = 'Chưa có dữ liệu';
+                }
+            } catch(e) { console.error(e); }
+        }
+        
+        async function loadMonthStats() {
+            try {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = now.getMonth() + 1;
+                const res = await fetch(`/api/reports/detail?type=month&date=${year}-${String(month).padStart(2,'0')}`);
+                const data = await res.json();
+                
+                let totalRevenue = 0, totalOrders = 0, totalQuantity = 0;
+                data.forEach(day => {
+                    totalRevenue += day.revenue || 0;
+                    totalOrders += day.order_count || 0;
+                    totalQuantity += day.total_quantity || 0;
+                });
+                
+                document.getElementById('monthRevenue').innerHTML = formatMoney(totalRevenue);
+                document.getElementById('monthProfit').innerHTML = formatMoney(totalRevenue * 0.3);
+                document.getElementById('totalSoldMonth').innerHTML = totalQuantity;
+                document.getElementById('invoiceCount').innerHTML = totalOrders;
+                document.getElementById('totalRevenue').innerHTML = formatMoney(totalRevenue);
+            } catch(e) { console.error(e); }
+        }
+        
+        async function loadReport(type, btn) {
+            currentReportType = type;
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            try {
+                const res = await fetch(`/api/reports/detail?type=${type}`);
+                const data = await res.json();
+                console.log('Data:', data);
+                
+                if (!data || data.length === 0) {
+                    document.getElementById('tableBody').innerHTML = '<tr><td colspan="5">Không có dữ liệu</td></tr>';
+                    document.getElementById('totalAmount').innerHTML = '0đ';
+                    document.getElementById('totalQuantity').innerHTML = '0';
+                    return;
+                }
+                
+                let html = '';
+                let totalRevenue = 0;
+                let totalQuantity = 0;
+                let labels = [];
+                let revenues = [];
+                
+                if (type === 'day') {
+                    document.getElementById('colLabel').innerText = 'GIỜ';
+                    data.forEach((item, i) => {
+                        totalRevenue += item.revenue;
+                        totalQuantity += item.total_quantity || 0;
+                        html += `<tr>
+                            <td>${i+1}</td>
+                            <td>${item.hour}:00</td>
+                            <td>${item.order_count}</td>
+                            <td>${item.total_quantity || 0}</td>
+                            <td>${formatMoney(item.revenue)}</td>
+                        </tr>`;
+                        labels.push(`${item.hour}:00`);
+                        revenues.push(item.revenue);
+                    });
+                } else if (type === 'month') {
+                    document.getElementById('colLabel').innerText = 'NGÀY';
+                    data.forEach((item, i) => {
+                        totalRevenue += item.revenue;
+                        totalQuantity += item.total_quantity || 0;
+                        const day = item.day.split('-')[2];
+                        html += `<tr>
+                            <td>${i+1}</td>
+                            <td>Ngày ${day}</td>
+                            <td>${item.order_count}</td>
+                            <td>${item.total_quantity || 0}</td>
+                            <td>${formatMoney(item.revenue)}</td>
+                        </tr>`;
+                        labels.push(`Ngày ${day}`);
+                        revenues.push(item.revenue);
+                    });
+                } else {
+                    document.getElementById('colLabel').innerText = 'THÁNG';
+                    data.forEach((item, i) => {
+                        totalRevenue += item.revenue;
+                        totalQuantity += item.total_quantity || 0;
+                        html += `<tr>
+                            <td>${i+1}</td>
+                            <td>Tháng ${i+1}</td>
+                            <td>${item.order_count}</td>
+                            <td>${item.total_quantity || 0}</td>
+                            <td>${formatMoney(item.revenue)}</td>
+                        </tr>`;
+                        labels.push(`Tháng ${i+1}`);
+                        revenues.push(item.revenue);
+                    });
+                }
+                
+                document.getElementById('tableBody').innerHTML = html;
+                document.getElementById('totalAmount').innerHTML = formatMoney(totalRevenue);
+                document.getElementById('totalQuantity').innerHTML = totalQuantity;
+                
+                // Vẽ biểu đồ
+                if (currentChart) currentChart.destroy();
+                const ctx = document.getElementById('revenueChart').getContext('2d');
+                currentChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: labels, datasets: [{ label: 'Doanh thu (VNĐ)', data: revenues, backgroundColor: '#3b82f6' }] },
+                    options: { responsive: true, maintainAspectRatio: true }
+                });
+            } catch(e) {
+                console.error('Error:', e);
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="5">Lỗi tải dữ liệu</td></tr>';
+            }
+        }
+        
+        async function loadCustomReport() {
+            const date = document.getElementById('customDate').value;
+            if (!date) return;
+            try {
+                const res = await fetch(`/api/reports/detail?type=${currentReportType}&date=${date}`);
+                const data = await res.json();
+                
+                let totalRevenue = 0, totalQuantity = 0;
+                let html = '';
+                
+                if (currentReportType === 'day') {
+                    data.forEach((item, i) => {
+                        totalRevenue += item.revenue;
+                        totalQuantity += item.total_quantity || 0;
+                        html += `<tr><td>${i+1}</td><td>${item.hour}:00</td><td>${item.order_count}</td><td>${item.total_quantity || 0}</td><td>${formatMoney(item.revenue)}</td></tr>`;
+                    });
+                } else if (currentReportType === 'month') {
+                    data.forEach((item, i) => {
+                        totalRevenue += item.revenue;
+                        totalQuantity += item.total_quantity || 0;
+                        const day = item.day.split('-')[2];
+                        html += `<tr><td>${i+1}</td><td>Ngày ${day}</td><td>${item.order_count}</td><td>${item.total_quantity || 0}</td><td>${formatMoney(item.revenue)}</td></tr>`;
+                    });
+                } else {
+                    data.forEach((item, i) => {
+                        totalRevenue += item.revenue;
+                        totalQuantity += item.total_quantity || 0;
+                        html += `<tr><td>${i+1}</td><td>Tháng ${i+1}</td><td>${item.order_count}</td><td>${item.total_quantity || 0}</td><td>${formatMoney(item.revenue)}</td></tr>`;
+                    });
+                }
+                
+                document.getElementById('tableBody').innerHTML = html;
+                document.getElementById('totalAmount').innerHTML = formatMoney(totalRevenue);
+                document.getElementById('totalQuantity').innerHTML = totalQuantity;
+            } catch(e) { console.error(e); }
+        }
+        
+        function formatMoney(amount) {
+            if (amount >= 1000000) return (amount / 1000000).toFixed(1) + 'trđ';
+            return new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
+        }
+        
+        document.getElementById('customDate').value = new Date().toISOString().split('T')[0];
+        loadStats();
+        loadMonthStats();
+        loadReport('day', document.querySelector('.btn.active'));
+    </script>
+</body>
+</html>
