@@ -5,158 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hóa đơn - CỬA HÀNG MINH THIÊN PHÚC</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f3f4f6;
-        }
-        
-        .header {
-            background: #3b82f6;
-            color: white;
-            padding: 16px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        
-        .header h1 {
-            font-size: 1.1rem;
-            text-align: center;
-        }
-        
-        .nav-links {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 12px;
-            flex-wrap: wrap;
-        }
-        
-        .nav-links a {
-            color: #e0e7ff;
-            text-decoration: none;
-            padding: 6px 12px;
-            font-size: 0.85rem;
-        }
-        
-        .nav-links a:hover {
-            color: white;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .filter-bar {
-            background: white;
-            padding: 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        
-        .filter-bar label {
-            font-weight: 500;
-            color: #4b5563;
-        }
-        
-        .filter-bar select, .filter-bar input {
-            padding: 8px 12px;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            font-size: 0.9rem;
-        }
-        
-        .filter-bar button {
-            padding: 8px 16px;
-            background: #3b82f6;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-        
-        .invoices-table {
-            background: white;
-            border-radius: 8px;
-            overflow-x: auto;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 900px;
-        }
-        
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        
-        th {
-            background: #f9fafb;
-            font-weight: 600;
-            color: #374151;
-        }
-        
-        tfoot td {
-            background: #f9fafb;
-            font-weight: bold;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #9ca3af;
-        }
-        
-        .logout-btn {
-            background: #dc2626;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 0.8rem;
-            margin-left: 10px;
-        }
-        
-        .btn-delete-invoice {
-            background: #ef4444;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .btn-delete-invoice:hover {
-            background: #dc2626;
-        }
-        
-        .order-group {
-            background: #fef3c7;
-        }
-        
-        @media print {
-            .header, .filter-bar, .logout-btn, .nav-links, .btn-delete-invoice {
-                display: none;
-            }
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f3f4f6; }
+        .header { background: #3b82f6; color: white; padding: 16px; }
+        .header h1 { font-size: 1.1rem; text-align: center; }
+        .nav-links { display: flex; justify-content: center; gap: 20px; margin-top: 12px; flex-wrap: wrap; }
+        .nav-links a { color: #e0e7ff; text-decoration: none; padding: 6px 12px; font-size: 0.85rem; }
+        .nav-links a:hover { color: white; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .filter-bar { background: white; padding: 16px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .filter-bar select, .filter-bar input { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; }
+        .filter-bar button { padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        .invoices-table { background: white; border-radius: 8px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { background: #f9fafb; font-weight: 600; }
+        .btn-delete { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+        .btn-delete:hover { background: #dc2626; }
+        .empty-state { text-align: center; padding: 40px; color: #9ca3af; }
+        .logout-btn { background: #dc2626; color: white; padding: 6px 12px; border-radius: 6px; text-decoration: none; margin-left: 10px; }
     </style>
 </head>
 <body>
@@ -205,10 +72,7 @@
                     <tr><td colspan="7" class="empty-state">Đang tải...</td></tr>
                 </tbody>
                 <tfoot>
-                    <tr>
-                        <td colspan="6"><strong>TỔNG CỘNG:</strong></td>
-                        <td id="totalAmount"><strong>0đ</strong></td>
-                    </tr>
+                    <tr><td colspan="6"><strong>TỔNG CỘNG:</strong></td><td id="totalAmount"><strong>0đ</strong></td></tr>
                 </tfoot>
             </table>
         </div>
@@ -224,69 +88,65 @@
             if (startDate) url += `&start_date=${startDate}`;
             if (endDate) url += `&end_date=${endDate}`;
             
-            const res = await fetch(url);
-            const invoices = await res.json();
-            const tbody = document.getElementById('invoiceList');
-            const totalSpan = document.getElementById('totalAmount');
-            
-            if (invoices.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Không có hóa đơn nào</td></tr>';
-                totalSpan.innerHTML = '<strong>0đ</strong>';
-                return;
-            }
-            
-            let totalAll = 0;
-            let currentOrder = '';
-            let rowHtml = '';
-            
-            invoices.forEach((inv, index) => {
-                const subtotal = inv.quantity * inv.price;
-                totalAll += subtotal;
-                const isNewOrder = (currentOrder !== inv.order_number);
-                currentOrder = inv.order_number;
+            try {
+                const res = await fetch(url);
+                const invoices = await res.json();
+                const tbody = document.getElementById('invoiceList');
+                const totalSpan = document.getElementById('totalAmount');
                 
-                rowHtml += `
-                    <tr data-order-number="${escapeHtml(inv.order_number)}">
-                        <td>${isNewOrder ? escapeHtml(inv.order_number) : ''}</td>
-                        <td>${escapeHtml(inv.product_name)}</td>
-                        <td>${new Date(inv.created_at).toLocaleString('vi-VN')}</td>
-                        <td>${inv.quantity}</td>
-                        <td>${formatMoney(inv.price)}</td>
-                        <td>${formatMoney(subtotal)}</td>
-                        <td>
-                            <button class="btn-delete-invoice" onclick="deleteInvoice('${escapeHtml(inv.order_number)}', this)">
-                                XÓA
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            tbody.innerHTML = rowHtml;
-            totalSpan.innerHTML = `<strong>${formatMoney(totalAll)}</strong>`;
+                console.log('Dữ liệu nhận được:', invoices);
+                
+                if (!invoices || invoices.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Không có hóa đơn nào</td></tr>';
+                    totalSpan.innerHTML = '<strong>0đ</strong>';
+                    return;
+                }
+                
+                let totalAll = 0;
+                let html = '';
+                
+                for (const inv of invoices) {
+                    const subtotal = (inv.quantity || 0) * (inv.price || 0);
+                    totalAll += subtotal;
+                    const date = new Date(inv.created_at);
+                    const dateStr = date.toLocaleString('vi-VN');
+                    
+                    html += `
+                        <tr>
+                            <td>${escapeHtml(inv.order_number || '')}</td>
+                            <td>${escapeHtml(inv.product_name || '')}</td>
+                            <td>${dateStr}</td>
+                            <td>${inv.quantity || 0}</td>
+                            <td>${formatMoney(inv.price || 0)}</td>
+                            <td>${formatMoney(subtotal)}</td>
+                            <td><button class="btn-delete" onclick="deleteInvoice('${escapeHtml(inv.order_number)}')">XÓA</button></td>
+                        </tr>
+                    `;
+                }
+                
+                tbody.innerHTML = html;
+                totalSpan.innerHTML = `<strong>${formatMoney(totalAll)}</strong>`;
+            } catch(e) {
+                console.error('Lỗi loadInvoices:', e);
+                document.getElementById('invoiceList').innerHTML = '<tr><td colspan="7" class="empty-state">Lỗi tải dữ liệu: ' + e.message + '</td></tr>';
+            }
         }
         
-        async function deleteInvoice(orderNumber, button) {
-            if (confirm(`Bạn có chắc muốn xóa hóa đơn ${orderNumber}?\nHành động này sẽ hoàn lại số lượng tồn kho và không thể khôi phục.`)) {
-                // Disable button và hiển thị đang xử lý
-                const originalText = button.innerText;
-                button.innerText = 'ĐANG XÓA...';
-                button.disabled = true;
-                button.style.opacity = '0.6';
-                
+        async function deleteInvoice(orderNumber) {
+            if (!confirm(`Bạn có chắc muốn xóa hóa đơn ${orderNumber}?`)) return;
+            
+            try {
                 const res = await fetch(`/api/invoices/${orderNumber}`, { method: 'DELETE' });
                 const result = await res.json();
                 
                 if (result.success) {
-                    alert('✅ Xóa hóa đơn thành công!');
-                    loadInvoices(); // Reload danh sách
-                    // Cập nhật lại thống kê ở các trang khác nếu cần
+                    alert('Xóa thành công!');
+                    loadInvoices();
                 } else {
-                    alert('❌ ' + (result.error || 'Xóa thất bại!'));
-                    button.innerText = originalText;
-                    button.disabled = false;
-                    button.style.opacity = '1';
+                    alert('Lỗi: ' + (result.error || 'Không thể xóa'));
                 }
+            } catch(e) {
+                alert('Lỗi: ' + e.message);
             }
         }
         
@@ -295,6 +155,7 @@
         }
         
         function formatMoney(amount) {
+            if (amount >= 1000000) return (amount / 1000000).toFixed(1) + 'trđ';
             return new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
         }
         
@@ -306,10 +167,10 @@
         }
         
         // Set default dates (đầu tháng đến hôm nay)
-        const today = new Date().toISOString().split('T')[0];
-        const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-        document.getElementById('startDate').value = firstDay;
-        document.getElementById('endDate').value = today;
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
+        document.getElementById('endDate').value = today.toISOString().split('T')[0];
         
         loadInvoices();
     </script>
