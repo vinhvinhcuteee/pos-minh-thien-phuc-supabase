@@ -35,7 +35,7 @@
         .date-input { display: flex; gap: 10px; align-items: center; margin-left: auto; }
         .date-input input { padding: 8px; border: 1px solid #e5e7eb; border-radius: 8px; }
         .date-input button { padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; }
-        .error-msg { color: red; text-align: center; padding: 20px; }
+        canvas { max-height: 300px; width: 100%; }
     </style>
 </head>
 <body>
@@ -73,7 +73,7 @@
         <div class="card">
             <h3>📊 THỐNG KÊ DOANH THU CHI TIẾT</h3>
             <div class="btn-group">
-                <button class="btn active" onclick="loadReport('day', this)">THEO NGÀY</button>
+                <button class="btn" onclick="loadReport('day', this)">THEO NGÀY</button>
                 <button class="btn" onclick="loadReport('month', this)">THEO THÁNG</button>
                 <button class="btn" onclick="loadReport('year', this)">THEO NĂM</button>
                 <div class="date-input">
@@ -81,8 +81,8 @@
                     <button onclick="loadCustomReport()">XEM</button>
                 </div>
             </div>
-            <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
-                <table>
+            <div style="overflow-x: auto; max-height: 400px;">
+                <table id="dataTable">
                     <thead>
                         <tr><th>STT</th><th id="colLabel">KỲ</th><th>SỐ ĐƠN</th><th>DOANH THU</th></tr>
                     </thead>
@@ -98,7 +98,7 @@
         
         <div class="card">
             <h3>📈 BIỂU ĐỒ DOANH THU</h3>
-            <canvas id="revenueChart" style="max-height: 300px;"></canvas>
+            <canvas id="revenueChart"></canvas>
         </div>
         
         <div class="card">
@@ -111,6 +111,7 @@
         let currentChart = null;
         let currentReportType = 'day';
         
+        // Lấy thống kê tổng quan
         async function loadStats() {
             try {
                 const res = await fetch('/api/stats');
@@ -122,7 +123,10 @@
                 document.getElementById('monthProfit').innerHTML = formatMoney(data.profit || 0);
                 document.getElementById('invoiceCount').innerHTML = data.total_orders || 0;
                 
+                // Tính tổng sản phẩm bán ra
+                let totalSold = 0;
                 if (data.top_products && data.top_products.length > 0) {
+                    totalSold = data.top_products.reduce((sum, p) => sum + (p.total_sold || 0), 0);
                     document.getElementById('topProductsList').innerHTML = data.top_products.map((p, i) => 
                         `<div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #e5e7eb;">
                             <span>${i+1}. ${p.name}</span>
@@ -132,24 +136,26 @@
                 } else {
                     document.getElementById('topProductsList').innerHTML = 'Chưa có dữ liệu';
                 }
-            } catch(e) { 
+                document.getElementById('totalSoldMonth').innerHTML = totalSold;
+            } catch(e) {
                 console.error('loadStats error:', e);
-                document.getElementById('topProductsList').innerHTML = 'Lỗi tải dữ liệu';
             }
         }
         
+        // Lấy báo cáo chi tiết
         async function loadReport(type, btn) {
             currentReportType = type;
-            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-            if (btn) btn.classList.add('active');
+            if (btn) {
+                document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
             
             try {
-                let url = `/api/reports/detail?type=${type}`;
-                const res = await fetch(url);
+                const res = await fetch(`/api/reports/detail?type=${type}`);
                 const data = await res.json();
                 
                 if (!data || data.length === 0) {
-                    document.getElementById('tableBody').innerHTML = '<tr><td colspan="4">Không có dữ liệu</td></tr>';
+                    document.getElementById('tableBody').innerHTML = '<td><td colspan="4">Không có dữ liệu</td></tr>';
                     document.getElementById('totalAmount').innerHTML = '0đ';
                     document.getElementById('totalOrdersCount').innerHTML = '0';
                     return;
@@ -157,61 +163,113 @@
                 
                 let html = '';
                 let totalRevenue = 0;
-                let totalOrdersCount = 0;
+                let totalOrders = 0;
                 let labels = [];
                 let revenues = [];
                 
                 if (type === 'day') {
-                    document.getElementById('colLabel').innerText = 'GIỜ';
+                    document.getElementById('colLabel').innerHTML = 'GIỜ';
                     data.forEach((item, i) => {
                         totalRevenue += item.revenue || 0;
-                        totalOrdersCount += item.order_count || 0;
+                        totalOrders += item.order_count || 0;
                         html += `<tr><td>${i+1}</td><td>${item.hour}:00</td><td>${item.order_count || 0}</td><td>${formatMoney(item.revenue || 0)}</td></tr>`;
                         labels.push(`${item.hour}:00`);
                         revenues.push(item.revenue || 0);
                     });
                 } else if (type === 'month') {
-                    document.getElementById('colLabel').innerText = 'NGÀY';
+                    document.getElementById('colLabel').innerHTML = 'NGÀY';
                     data.forEach((item, i) => {
                         totalRevenue += item.revenue || 0;
-                        totalOrdersCount += item.order_count || 0;
+                        totalOrders += item.order_count || 0;
                         const day = item.day ? item.day.split('-')[2] : i+1;
                         html += `<tr><td>${i+1}</td><td>Ngày ${day}</td><td>${item.order_count || 0}</td><td>${formatMoney(item.revenue || 0)}</td></tr>`;
                         labels.push(`Ngày ${day}`);
                         revenues.push(item.revenue || 0);
                     });
                 } else {
-                    document.getElementById('colLabel').innerText = 'THÁNG';
+                    document.getElementById('colLabel').innerHTML = 'THÁNG';
                     data.forEach((item, i) => {
                         totalRevenue += item.revenue || 0;
-                        totalOrdersCount += item.order_count || 0;
+                        totalOrders += item.order_count || 0;
                         html += `<tr><td>${i+1}</td><td>Tháng ${i+1}</td><td>${item.order_count || 0}</td><td>${formatMoney(item.revenue || 0)}</td></tr>`;
                         labels.push(`Tháng ${i+1}`);
                         revenues.push(item.revenue || 0);
                     });
                 }
                 
-                document.getElementById('tableBody').innerHTML = html || '<tr><td colspan="4">Không có dữ liệu</td></tr>';
+                document.getElementById('tableBody').innerHTML = html;
                 document.getElementById('totalAmount').innerHTML = formatMoney(totalRevenue);
-                document.getElementById('totalOrdersCount').innerHTML = totalOrdersCount;
+                document.getElementById('totalOrdersCount').innerHTML = totalOrders;
                 
+                // Vẽ biểu đồ
                 if (currentChart) currentChart.destroy();
                 const ctx = document.getElementById('revenueChart').getContext('2d');
                 currentChart = new Chart(ctx, {
                     type: 'bar',
-                    data: { labels: labels, datasets: [{ label: 'Doanh thu (VNĐ)', data: revenues, backgroundColor: '#3b82f6' }] },
-                    options: { responsive: true, maintainAspectRatio: true }
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Doanh thu (VNĐ)',
+                            data: revenues,
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Doanh thu: ' + formatMoney(context.raw);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 });
             } catch(e) {
                 console.error('loadReport error:', e);
-                document.getElementById('tableBody').innerHTML = '<tr><td colspan="4">Lỗi tải dữ liệu</td></tr>';
+                document.getElementById('tableBody').innerHTML = `<tr><td colspan="4">Lỗi: ${e.message}</td></tr>`;
             }
         }
         
         async function loadCustomReport() {
             const date = document.getElementById('customDate').value;
             if (!date) return;
-            await loadReport(currentReportType, document.querySelector('.btn.active'));
+            try {
+                const res = await fetch(`/api/reports/detail?type=${currentReportType}&date=${date}`);
+                const data = await res.json();
+                if (!data || data.length === 0) {
+                    document.getElementById('tableBody').innerHTML = '<td><td colspan="4">Không có dữ liệu</td></tr>';
+                    return;
+                }
+                
+                let html = '';
+                let totalRevenue = 0;
+                if (currentReportType === 'day') {
+                    data.forEach((item, i) => {
+                        totalRevenue += item.revenue || 0;
+                        html += `<tr><td>${i+1}</td><td>${item.hour}:00</td><td>${item.order_count || 0}</td><td>${formatMoney(item.revenue || 0)}</td></tr>`;
+                    });
+                } else if (currentReportType === 'month') {
+                    data.forEach((item, i) => {
+                        totalRevenue += item.revenue || 0;
+                        const day = item.day.split('-')[2];
+                        html += `<tr><td>${i+1}</td><td>Ngày ${day}</td><td>${item.order_count || 0}</td><td>${formatMoney(item.revenue || 0)}</td></tr>`;
+                    });
+                } else {
+                    data.forEach((item, i) => {
+                        totalRevenue += item.revenue || 0;
+                        html += `<tr><td>${i+1}</td><td>Tháng ${i+1}</td><td>${item.order_count || 0}</td><td>${formatMoney(item.revenue || 0)}</td></tr>`;
+                    });
+                }
+                document.getElementById('tableBody').innerHTML = html;
+                document.getElementById('totalAmount').innerHTML = formatMoney(totalRevenue);
+            } catch(e) {
+                console.error(e);
+            }
         }
         
         function formatMoney(amount) {
@@ -221,7 +279,7 @@
         
         document.getElementById('customDate').value = new Date().toISOString().split('T')[0];
         loadStats();
-        loadReport('day', null);
+        loadReport('day', document.querySelector('.btn'));
     </script>
 </body>
 </html>
