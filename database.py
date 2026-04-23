@@ -1,396 +1,377 @@
-import sqlite3
 import os
+from supabase import create_client, Client
 from datetime import datetime
 
 class Database:
     def __init__(self):
-        self.conn = None
+        self.client: Client = None
         self.connect()
 
     def connect(self):
         try:
-            # Tạo thư mục data nếu chưa có
-            if not os.path.exists('data'):
-                os.makedirs('data')
+            supabase_url = os.environ.get('SUPABASE_URL')
+            supabase_key = os.environ.get('SUPABASE_KEY')
             
-            self.conn = sqlite3.connect('data/pos.db', check_same_thread=False)
-            self.conn.row_factory = sqlite3.Row
-            print("✅ Kết nối SQLite thành công!")
-            self.create_tables()
-            self.insert_sample_data()
+            print("=" * 50)
+            print("ĐANG KẾT NỐI SUPABASE...")
+            print("=" * 50)
+            
+            if not supabase_url or not supabase_key:
+                print("❌ LỖI: Thiếu SUPABASE_URL hoặc SUPABASE_KEY!")
+                return
+            
+            print(f"📡 URL: {supabase_url}")
+            self.client = create_client(supabase_url, supabase_key)
+            print("✅ KẾT NỐI SUPABASE THÀNH CÔNG!")
+            
+            # Tạo bảng nếu chưa có
+            self.create_tables_if_not_exist()
+            
+            print("=" * 50)
+            
         except Exception as e:
-            print(f"❌ Lỗi kết nối SQLite: {e}")
+            print(f"❌ LỖI KẾT NỐI: {e}")
 
-    def create_tables(self):
-        cursor = self.conn.cursor()
-        
-        # Bảng sản phẩm
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS products (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                price INTEGER NOT NULL,
-                cost_price INTEGER DEFAULT 0,
-                stock INTEGER DEFAULT 0,
-                category TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Bảng khách hàng
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS customers (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                phone TEXT,
-                email TEXT,
-                address TEXT,
-                total_spent INTEGER DEFAULT 0,
-                last_purchase TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Bảng đơn hàng
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS orders (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                order_number TEXT UNIQUE NOT NULL,
-                customer_id INTEGER,
-                total_amount INTEGER NOT NULL,
-                payment_method TEXT DEFAULT 'cash',
-                status TEXT DEFAULT 'completed',
-                created_by INTEGER,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (customer_id) REFERENCES customers(id)
-            )
-        ''')
-        
-        # Bảng chi tiết đơn hàng
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS order_items (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                order_id INTEGER NOT NULL,
-                product_id INTEGER NOT NULL,
-                quantity INTEGER NOT NULL,
-                price INTEGER NOT NULL,
-                FOREIGN KEY (order_id) REFERENCES orders(id),
-                FOREIGN KEY (product_id) REFERENCES products(id)
-            )
-        ''')
-        
-        self.conn.commit()
-        print("✅ Đã tạo/cập nhật bảng thành công!")
-
-    def insert_sample_data(self):
-        cursor = self.conn.cursor()
-        
-        # Thêm sản phẩm mẫu
-        cursor.execute("SELECT COUNT(*) FROM products")
-        if cursor.fetchone()[0] == 0:
-            sample_products = [
-                ('Cà phê đen', 15000, 8000, 100, 'Đồ uống'),
-                ('Cà phê sữa', 20000, 10000, 100, 'Đồ uống'),
-                ('Bánh mì thịt', 25000, 15000, 50, 'Đồ ăn'),
-                ('Trà đào', 30000, 18000, 80, 'Đồ uống'),
-                ('Nước ép cam', 35000, 20000, 60, 'Đồ uống'),
-            ]
-            cursor.executemany('''
-                INSERT INTO products (name, price, cost_price, stock, category)
-                VALUES (?, ?, ?, ?, ?)
-            ''', sample_products)
-            print("✅ Đã thêm 5 sản phẩm mẫu")
-        
-        # Thêm khách hàng mẫu
-        cursor.execute("SELECT COUNT(*) FROM customers")
-        if cursor.fetchone()[0] == 0:
-            sample_customers = [
-                ('Nguyễn Văn A', '0987654321', 'a@gmail.com', 'Hà Nội'),
-                ('Trần Thị B', '0978123456', 'b@gmail.com', 'TP HCM'),
-                ('Lê Văn C', '0965111222', 'c@gmail.com', 'Đà Nẵng'),
-            ]
-            cursor.executemany('''
-                INSERT INTO customers (name, phone, email, address)
-                VALUES (?, ?, ?, ?)
-            ''', sample_customers)
-            print("✅ Đã thêm 3 khách hàng mẫu")
-        
-        self.conn.commit()
+    def create_tables_if_not_exist(self):
+        """Tạo bảng nếu chưa tồn tại (dùng SQL thuần)"""
+        try:
+            # Kiểm tra bảng products có tồn tại không
+            self.client.table('products').select('id', count='exact').limit(1).execute()
+            print("✅ Các bảng đã tồn tại!")
+        except Exception as e:
+            print("⚠️ Bảng chưa tồn tại, vui lòng chạy script tạo bảng trên Supabase SQL Editor")
+            print("   SQL sẽ được hiển thị bên dưới:")
 
     # ==================== SẢN PHẨM ====================
     def get_all_products(self):
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM products ORDER BY id DESC")
-        return [dict(row) for row in cursor.fetchall()]
+        try:
+            result = self.client.table('products').select('*').order('id', desc=True).execute()
+            return result.data
+        except Exception as e:
+            print(f"Lỗi get_all_products: {e}")
+            return []
 
     def add_product(self, data):
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            INSERT INTO products (name, price, cost_price, stock, category)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (data['name'], data['price'], data.get('cost_price', 0), 
-              data.get('stock', 0), data.get('category', '')))
-        self.conn.commit()
-        return cursor.lastrowid
+        try:
+            result = self.client.table('products').insert(data).execute()
+            return result.data[0]['id'] if result.data else None
+        except Exception as e:
+            print(f"Lỗi add_product: {e}")
+            return None
 
     def update_product(self, product_id, data):
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            UPDATE products 
-            SET name=?, price=?, cost_price=?, stock=?, category=?
-            WHERE id=?
-        ''', (data['name'], data['price'], data.get('cost_price', 0),
-              data.get('stock', 0), data.get('category', ''), product_id))
-        self.conn.commit()
-        return True
+        try:
+            self.client.table('products').update(data).eq('id', product_id).execute()
+            return True
+        except Exception as e:
+            print(f"Lỗi update_product: {e}")
+            return False
 
     def delete_product(self, product_id):
-        cursor = self.conn.cursor()
-        cursor.execute("DELETE FROM products WHERE id=?", (product_id,))
-        self.conn.commit()
-        return True
+        try:
+            self.client.table('products').delete().eq('id', product_id).execute()
+            return True
+        except Exception as e:
+            print(f"Lỗi delete_product: {e}")
+            return False
 
     # ==================== KHÁCH HÀNG ====================
     def get_all_customers(self):
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM customers ORDER BY total_spent DESC")
-        return [dict(row) for row in cursor.fetchall()]
+        try:
+            result = self.client.table('customers').select('*').order('total_spent', desc=True).execute()
+            return result.data
+        except Exception as e:
+            print(f"Lỗi get_all_customers: {e}")
+            return []
 
     def add_customer(self, data):
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            INSERT INTO customers (name, phone, email, address, total_spent)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (data['name'], data.get('phone', ''), data.get('email', ''),
-              data.get('address', ''), 0))
-        self.conn.commit()
-        return cursor.lastrowid
+        try:
+            result = self.client.table('customers').insert(data).execute()
+            return result.data[0]['id'] if result.data else None
+        except Exception as e:
+            print(f"Lỗi add_customer: {e}")
+            return None
 
     def update_customer(self, customer_id, data):
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            UPDATE customers 
-            SET name=?, phone=?, email=?, address=?
-            WHERE id=?
-        ''', (data['name'], data.get('phone', ''), data.get('email', ''),
-              data.get('address', ''), customer_id))
-        self.conn.commit()
-        return True
+        try:
+            self.client.table('customers').update(data).eq('id', customer_id).execute()
+            return True
+        except Exception as e:
+            print(f"Lỗi update_customer: {e}")
+            return False
 
     def delete_customer(self, customer_id):
-        cursor = self.conn.cursor()
-        # Kiểm tra xem khách hàng có đơn hàng không
-        cursor.execute("SELECT COUNT(*) as count FROM orders WHERE customer_id=?", (customer_id,))
-        if cursor.fetchone()['count'] > 0:
-            return False, "Khách hàng có đơn hàng, không thể xóa"
-        
-        cursor.execute("DELETE FROM customers WHERE id=?", (customer_id,))
-        self.conn.commit()
-        return True, ""
+        try:
+            # Kiểm tra xem khách hàng có đơn hàng không
+            orders = self.client.table('orders').select('id', count='exact').eq('customer_id', customer_id).execute()
+            if orders.count and orders.count > 0:
+                return False, "Khách hàng có đơn hàng, không thể xóa"
+            
+            self.client.table('customers').delete().eq('id', customer_id).execute()
+            return True, ""
+        except Exception as e:
+            return False, str(e)
 
     def get_customer_history(self, customer_id):
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            SELECT o.*, oi.product_id, oi.quantity, oi.price, p.name as product_name
-            FROM orders o
-            JOIN order_items oi ON o.id = oi.order_id
-            JOIN products p ON oi.product_id = p.id
-            WHERE o.customer_id = ?
-            ORDER BY o.created_at DESC
-        ''', (customer_id,))
-        return [dict(row) for row in cursor.fetchall()]
+        try:
+            result = self.client.table('orders')\
+                .select('*, order_items(*, products(name))')\
+                .eq('customer_id', customer_id)\
+                .order('created_at', desc=True)\
+                .execute()
+            
+            history = []
+            for order in result.data:
+                for item in order.get('order_items', []):
+                    history.append({
+                        'order_id': order['id'],
+                        'order_number': order['order_number'],
+                        'total_amount': order['total_amount'],
+                        'created_at': order['created_at'],
+                        'payment_method': order['payment_method'],
+                        'product_name': item.get('products', {}).get('name', ''),
+                        'product_id': item['product_id'],
+                        'quantity': item['quantity'],
+                        'price': item['price']
+                    })
+            return history
+        except Exception as e:
+            print(f"Lỗi get_customer_history: {e}")
+            return []
 
     # ==================== ĐƠN HÀNG ====================
     def get_all_orders(self):
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            SELECT o.*, c.name as customer_name 
-            FROM orders o
-            LEFT JOIN customers c ON o.customer_id = c.id
-            ORDER BY o.created_at DESC 
-            LIMIT 50
-        ''')
-        return [dict(row) for row in cursor.fetchall()]
+        try:
+            result = self.client.table('orders')\
+                .select('*, customers(name)')\
+                .order('created_at', desc=True)\
+                .limit(50)\
+                .execute()
+            
+            orders = []
+            for order in result.data:
+                orders.append({
+                    'id': order['id'],
+                    'order_number': order['order_number'],
+                    'customer_id': order.get('customer_id'),
+                    'customer_name': order.get('customers', {}).get('name', 'Khách lẻ'),
+                    'total_amount': order['total_amount'],
+                    'payment_method': order['payment_method'],
+                    'status': order['status'],
+                    'created_by': order.get('created_by', 1),
+                    'created_at': order['created_at']
+                })
+            return orders
+        except Exception as e:
+            print(f"Lỗi get_all_orders: {e}")
+            return []
 
     def create_order(self, order_data, items):
-        cursor = self.conn.cursor()
         try:
-            cursor.execute('''
-                INSERT INTO orders (order_number, customer_id, total_amount, payment_method, status, created_by)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (order_data['order_number'], order_data.get('customer_id'), 
-                  order_data['total_amount'], order_data.get('payment_method', 'cash'),
-                  'completed', 1))
-            order_id = cursor.lastrowid
+            # Tạo đơn hàng
+            result = self.client.table('orders').insert(order_data).execute()
+            if not result.data:
+                return None, "Không thể tạo đơn hàng"
             
+            order_id = result.data[0]['id']
+            
+            # Thêm chi tiết đơn hàng
             for item in items:
-                cursor.execute('''
-                    INSERT INTO order_items (order_id, product_id, quantity, price)
-                    VALUES (?, ?, ?, ?)
-                ''', (order_id, item['id'], item['quantity'], item['price']))
+                self.client.table('order_items').insert({
+                    'order_id': order_id,
+                    'product_id': item['id'],
+                    'quantity': item['quantity'],
+                    'price': item['price']
+                }).execute()
                 
-                cursor.execute("UPDATE products SET stock = stock - ? WHERE id = ?", 
-                             (item['quantity'], item['id']))
+                # Cập nhật tồn kho (giảm)
+                product = self.client.table('products').select('stock').eq('id', item['id']).execute()
+                if product.data:
+                    new_stock = product.data[0]['stock'] - item['quantity']
+                    self.client.table('products').update({'stock': new_stock}).eq('id', item['id']).execute()
             
+            # Cập nhật tổng chi tiêu khách hàng
             if order_data.get('customer_id'):
-                cursor.execute('''
-                    UPDATE customers 
-                    SET total_spent = total_spent + ?,
-                        last_purchase = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                ''', (order_data['total_amount'], order_data['customer_id']))
+                customer = self.client.table('customers').select('total_spent').eq('id', order_data['customer_id']).execute()
+                if customer.data:
+                    new_total = customer.data[0]['total_spent'] + order_data['total_amount']
+                    self.client.table('customers').update({
+                        'total_spent': new_total,
+                        'last_purchase': datetime.now().isoformat()
+                    }).eq('id', order_data['customer_id']).execute()
             
-            self.conn.commit()
             return order_id, None
         except Exception as e:
-            self.conn.rollback()
+            print(f"Lỗi create_order: {e}")
             return None, str(e)
 
     # ==================== HÓA ĐƠN ====================
     def get_invoices(self, filter_type='all', start_date=None, end_date=None):
-        cursor = self.conn.cursor()
-        query = '''
-            SELECT 
-                o.order_number,
-                o.created_at,
-                p.name as product_name,
-                oi.quantity,
-                oi.price,
-                (oi.quantity * oi.price) as subtotal,
-                o.total_amount
-            FROM orders o
-            JOIN order_items oi ON o.id = oi.order_id
-            JOIN products p ON oi.product_id = p.id
-            WHERE o.status = 'completed'
-        '''
-        params = []
-        
-        if filter_type == 'today':
-            query += " AND DATE(o.created_at) = DATE('now')"
-        elif filter_type == 'week':
-            query += " AND o.created_at >= DATE('now', '-7 days')"
-        elif filter_type == 'month':
-            query += " AND o.created_at >= DATE('now', '-30 days')"
-        
-        if start_date:
-            query += " AND DATE(o.created_at) >= ?"
-            params.append(start_date)
-        if end_date:
-            query += " AND DATE(o.created_at) <= ?"
-            params.append(end_date)
-        
-        query += " ORDER BY o.created_at DESC"
-        
-        cursor.execute(query, params)
-        return [dict(row) for row in cursor.fetchall()]
+        try:
+            from datetime import datetime, timedelta
+            
+            query = self.client.table('orders')\
+                .select('*, order_items(*, products(name))')\
+                .eq('status', 'completed')\
+                .order('created_at', desc=True)
+            
+            if filter_type == 'today':
+                today = datetime.now().date().isoformat()
+                query = query.gte('created_at', today)
+            elif filter_type == 'week':
+                week_ago = (datetime.now() - timedelta(days=7)).date().isoformat()
+                query = query.gte('created_at', week_ago)
+            elif filter_type == 'month':
+                month_ago = (datetime.now() - timedelta(days=30)).date().isoformat()
+                query = query.gte('created_at', month_ago)
+            
+            if start_date:
+                query = query.gte('created_at', start_date)
+            if end_date:
+                query = query.lte('created_at', end_date)
+            
+            result = query.execute()
+            
+            invoices = []
+            for order in result.data:
+                for item in order.get('order_items', []):
+                    invoices.append({
+                        'order_number': order['order_number'],
+                        'created_at': order['created_at'],
+                        'product_name': item.get('products', {}).get('name', ''),
+                        'quantity': item['quantity'],
+                        'price': item['price'],
+                        'subtotal': item['quantity'] * item['price'],
+                        'total_amount': order['total_amount']
+                    })
+            return invoices
+        except Exception as e:
+            print(f"Lỗi get_invoices: {e}")
+            return []
 
     def delete_invoice(self, order_number):
         """Xóa hóa đơn theo mã đơn hàng"""
-        cursor = self.conn.cursor()
         try:
             # Lấy order_id từ order_number
-            cursor.execute("SELECT id FROM orders WHERE order_number = ?", (order_number,))
-            result = cursor.fetchone()
-            if not result:
+            order_result = self.client.table('orders').select('id, customer_id, total_amount').eq('order_number', order_number).execute()
+            if not order_result.data:
                 return False, "Không tìm thấy đơn hàng"
             
-            order_id = result['id']
+            order = order_result.data[0]
+            order_id = order['id']
             
-            # Lấy danh sách sản phẩm trong đơn hàng để hoàn lại stock
-            cursor.execute("SELECT product_id, quantity FROM order_items WHERE order_id = ?", (order_id,))
-            items = cursor.fetchall()
+            # Lấy danh sách sản phẩm trong đơn hàng
+            items_result = self.client.table('order_items').select('product_id, quantity').eq('order_id', order_id).execute()
             
             # Hoàn lại số lượng tồn kho
-            for item in items:
-                cursor.execute("UPDATE products SET stock = stock + ? WHERE id = ?", 
-                             (item['quantity'], item['product_id']))
+            for item in items_result.data:
+                product = self.client.table('products').select('stock').eq('id', item['product_id']).execute()
+                if product.data:
+                    new_stock = product.data[0]['stock'] + item['quantity']
+                    self.client.table('products').update({'stock': new_stock}).eq('id', item['product_id']).execute()
             
             # Trừ total_spent của khách hàng
-            cursor.execute("SELECT customer_id, total_amount FROM orders WHERE id = ?", (order_id,))
-            order = cursor.fetchone()
-            if order and order['customer_id']:
-                cursor.execute("UPDATE customers SET total_spent = total_spent - ? WHERE id = ?",
-                             (order['total_amount'], order['customer_id']))
+            if order.get('customer_id'):
+                customer = self.client.table('customers').select('total_spent').eq('id', order['customer_id']).execute()
+                if customer.data:
+                    new_total = customer.data[0]['total_spent'] - order['total_amount']
+                    self.client.table('customers').update({'total_spent': new_total}).eq('id', order['customer_id']).execute()
             
             # Xóa order_items trước
-            cursor.execute("DELETE FROM order_items WHERE order_id = ?", (order_id,))
+            self.client.table('order_items').delete().eq('order_id', order_id).execute()
             
             # Xóa orders
-            cursor.execute("DELETE FROM orders WHERE id = ?", (order_id,))
+            self.client.table('orders').delete().eq('id', order_id).execute()
             
-            self.conn.commit()
             return True, "Xóa thành công"
         except Exception as e:
-            self.conn.rollback()
+            print(f"Lỗi delete_invoice: {e}")
             return False, str(e)
     
     def get_order_by_number(self, order_number):
         """Lấy thông tin đơn hàng theo mã"""
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            SELECT o.*, c.name as customer_name 
-            FROM orders o
-            LEFT JOIN customers c ON o.customer_id = c.id
-            WHERE o.order_number = ?
-        ''', (order_number,))
-        row = cursor.fetchone()
-        return dict(row) if row else None
+        try:
+            result = self.client.table('orders')\
+                .select('*, customers(name)')\
+                .eq('order_number', order_number)\
+                .execute()
+            
+            if result.data:
+                order = result.data[0]
+                return {
+                    'id': order['id'],
+                    'order_number': order['order_number'],
+                    'customer_id': order.get('customer_id'),
+                    'customer_name': order.get('customers', {}).get('name', 'Khách lẻ'),
+                    'total_amount': order['total_amount'],
+                    'payment_method': order['payment_method'],
+                    'status': order['status'],
+                    'created_at': order['created_at']
+                }
+            return None
+        except Exception as e:
+            print(f"Lỗi get_order_by_number: {e}")
+            return None
 
     # ==================== THỐNG KÊ ====================
     def get_stats(self):
-        cursor = self.conn.cursor()
-        
-        cursor.execute("SELECT COUNT(*) as count FROM products")
-        total_products = cursor.fetchone()['count']
-        
-        cursor.execute("SELECT COUNT(*) as count FROM customers")
-        total_customers = cursor.fetchone()['count']
-        
-        cursor.execute("SELECT COUNT(*) as count FROM orders WHERE status = 'completed'")
-        total_orders = cursor.fetchone()['count']
-        
-        cursor.execute("SELECT COALESCE(SUM(total_amount), 0) as revenue FROM orders WHERE DATE(created_at) = DATE('now') AND status = 'completed'")
-        today_revenue = cursor.fetchone()['revenue']
-        
-        cursor.execute("SELECT COALESCE(SUM(total_amount), 0) as revenue FROM orders WHERE DATE(created_at) >= DATE('now', 'start of month') AND status = 'completed'")
-        month_revenue = cursor.fetchone()['revenue']
-        
-        # Top 5 sản phẩm bán chạy
-        cursor.execute('''
-            SELECT p.name, SUM(oi.quantity) as total_sold
-            FROM order_items oi
-            JOIN products p ON oi.product_id = p.id
-            GROUP BY p.id
-            ORDER BY total_sold DESC
-            LIMIT 5
-        ''')
-        top_products = [dict(row) for row in cursor.fetchall()]
-        
-        # Tính lợi nhuận (giả định 30% - có thể tính chính xác từ cost_price)
-        cursor.execute('''
-            SELECT SUM((oi.price - p.cost_price) * oi.quantity) as profit
-            FROM order_items oi
-            JOIN products p ON oi.product_id = p.id
-            JOIN orders o ON oi.order_id = o.id
-            WHERE DATE(o.created_at) >= DATE('now', 'start of month')
-        ''')
-        profit_result = cursor.fetchone()
-        profit = profit_result['profit'] if profit_result and profit_result['profit'] else 0
-        
-        # Tính tỷ suất lợi nhuận
-        profit_margin = (profit / month_revenue * 100) if month_revenue > 0 else 0
-        
-        return {
-            'total_products': total_products,
-            'total_customers': total_customers,
-            'total_orders': total_orders,
-            'today_revenue': today_revenue,
-            'month_revenue': month_revenue,
-            'profit': profit,
-            'profit_margin': profit_margin,
-            'top_products': top_products
-        }
-    
+        try:
+            from datetime import datetime
+            
+            # Tổng số
+            products_count = self.client.table('products').select('id', count='exact').execute().count or 0
+            customers_count = self.client.table('customers').select('id', count='exact').execute().count or 0
+            orders_count = self.client.table('orders').select('id', count='exact').eq('status', 'completed').execute().count or 0
+            
+            # Doanh thu hôm nay
+            today = datetime.now().date().isoformat()
+            today_orders = self.client.table('orders').select('total_amount').eq('status', 'completed').gte('created_at', today).execute()
+            today_revenue = sum(o['total_amount'] for o in today_orders.data)
+            
+            # Doanh thu tháng này
+            first_day = datetime.now().replace(day=1).date().isoformat()
+            month_orders = self.client.table('orders').select('total_amount').eq('status', 'completed').gte('created_at', first_day).execute()
+            month_revenue = sum(o['total_amount'] for o in month_orders.data)
+            
+            # Top 5 sản phẩm bán chạy
+            items_result = self.client.table('order_items').select('product_id, quantity, products(name)').execute()
+            
+            product_sales = {}
+            for item in items_result.data:
+                product_name = item.get('products', {}).get('name', 'Unknown')
+                product_sales[product_name] = product_sales.get(product_name, 0) + item['quantity']
+            
+            top_products = [{'name': k, 'total_sold': v} for k, v in sorted(product_sales.items(), key=lambda x: x[1], reverse=True)[:5]]
+            
+            # Tính lợi nhuận
+            profit_data = self.client.table('order_items')\
+                .select('quantity, price, products(cost_price)')\
+                .execute()
+            
+            profit = 0
+            for item in profit_data.data:
+                cost = item.get('products', {}).get('cost_price', 0) if item.get('products') else 0
+                profit += item['quantity'] * (item['price'] - cost)
+            
+            profit_margin = (profit / month_revenue * 100) if month_revenue > 0 else 0
+            
+            return {
+                'total_products': products_count,
+                'total_customers': customers_count,
+                'total_orders': orders_count,
+                'today_revenue': today_revenue,
+                'month_revenue': month_revenue,
+                'profit': profit,
+                'profit_margin': profit_margin,
+                'top_products': top_products
+            }
+        except Exception as e:
+            print(f"Lỗi get_stats: {e}")
+            return {
+                'total_products': 0, 'total_customers': 0, 'total_orders': 0,
+                'today_revenue': 0, 'month_revenue': 0, 'profit': 0, 'profit_margin': 0, 'top_products': []
+            }
+
     def close(self):
-        if self.conn:
-            self.conn.close()
+        """Supabase không cần đóng kết nối, giữ để tương thích"""
+        pass
