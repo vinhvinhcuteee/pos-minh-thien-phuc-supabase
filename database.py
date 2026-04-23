@@ -1,6 +1,6 @@
 import os
 from supabase import create_client, Client
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class Database:
     def __init__(self):
@@ -24,23 +24,13 @@ class Database:
             self.client = create_client(supabase_url, supabase_key)
             print("✅ KẾT NỐI SUPABASE THÀNH CÔNG!")
             
-            # Tạo bảng nếu chưa có
-            self.create_tables_if_not_exist()
-            
+            # Kiểm tra kết nối
+            result = self.client.table('products').select('*', count='exact').limit(1).execute()
+            print(f"✅ Kiểm tra thành công! (products table exists)")
             print("=" * 50)
             
         except Exception as e:
-            print(f"❌ LỖI KẾT NỐI: {e}")
-
-    def create_tables_if_not_exist(self):
-        """Tạo bảng nếu chưa tồn tại (dùng SQL thuần)"""
-        try:
-            # Kiểm tra bảng products có tồn tại không
-            self.client.table('products').select('id', count='exact').limit(1).execute()
-            print("✅ Các bảng đã tồn tại!")
-        except Exception as e:
-            print("⚠️ Bảng chưa tồn tại, vui lòng chạy script tạo bảng trên Supabase SQL Editor")
-            print("   SQL sẽ được hiển thị bên dưới:")
+            print(f"❌ LỖI: {e}")
 
     # ==================== SẢN PHẨM ====================
     def get_all_products(self):
@@ -184,7 +174,7 @@ class Database:
                     'price': item['price']
                 }).execute()
                 
-                # Cập nhật tồn kho (giảm)
+                # Cập nhật tồn kho
                 product = self.client.table('products').select('stock').eq('id', item['id']).execute()
                 if product.data:
                     new_stock = product.data[0]['stock'] - item['quantity']
@@ -205,11 +195,10 @@ class Database:
             print(f"Lỗi create_order: {e}")
             return None, str(e)
 
-    # ==================== HÓA ĐƠN ====================
+    # ==================== HÓA ĐƠN (THÊM MỚI) ====================
     def get_invoices(self, filter_type='all', start_date=None, end_date=None):
+        """Lấy danh sách hóa đơn"""
         try:
-            from datetime import datetime, timedelta
-            
             query = self.client.table('orders')\
                 .select('*, order_items(*, products(name))')\
                 .eq('status', 'completed')\
@@ -252,7 +241,7 @@ class Database:
     def delete_invoice(self, order_number):
         """Xóa hóa đơn theo mã đơn hàng"""
         try:
-            # Lấy order_id từ order_number
+            # Lấy thông tin đơn hàng
             order_result = self.client.table('orders').select('id, customer_id, total_amount').eq('order_number', order_number).execute()
             if not order_result.data:
                 return False, "Không tìm thấy đơn hàng"
@@ -275,7 +264,7 @@ class Database:
                 customer = self.client.table('customers').select('total_spent').eq('id', order['customer_id']).execute()
                 if customer.data:
                     new_total = customer.data[0]['total_spent'] - order['total_amount']
-                    self.client.table('customers').update({'total_spent': new_total}).eq('id', order['customer_id']).execute()
+                    self.client.table('customers').update({'total_spent': max(0, new_total)}).eq('id', order['customer_id']).execute()
             
             # Xóa order_items trước
             self.client.table('order_items').delete().eq('order_id', order_id).execute()
@@ -313,11 +302,10 @@ class Database:
             print(f"Lỗi get_order_by_number: {e}")
             return None
 
-    # ==================== THỐNG KÊ ====================
+    # ==================== THỐNG KÊ (SỬA LẠI) ====================
     def get_stats(self):
+        """Lấy thống kê tổng quan"""
         try:
-            from datetime import datetime
-            
             # Tổng số
             products_count = self.client.table('products').select('id', count='exact').execute().count or 0
             customers_count = self.client.table('customers').select('id', count='exact').execute().count or 0
@@ -373,5 +361,5 @@ class Database:
             }
 
     def close(self):
-        """Supabase không cần đóng kết nối, giữ để tương thích"""
+        """Supabase không cần đóng kết nối"""
         pass
