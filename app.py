@@ -237,12 +237,25 @@ def report_detail():
         report_type = request.args.get('type', 'day')
         date_param = request.args.get('date')
         
+        # Kiểm tra kết nối database
+        if not db.client:
+            return jsonify([])
+        
         if report_type == 'day':
             if date_param:
                 target_date = date_param
             else:
                 target_date = datetime.now().strftime('%Y-%m-%d')
             
+            # Lấy dữ liệu từ Supabase
+            result = db.client.table('orders')\
+                .select('created_at, total_amount')\
+                .eq('status', 'completed')\
+                .gte('created_at', target_date)\
+                .lt('created_at', f"{target_date}T23:59:59")\
+                .execute()
+            
+            # Tạo mảng 24 giờ
             reports = []
             for h in range(24):
                 reports.append({
@@ -252,25 +265,11 @@ def report_detail():
                     'total_quantity': 0
                 })
             
-            cursor = db.conn.cursor()
-            cursor.execute("""
-                SELECT 
-                    strftime('%H', o.created_at) as hour,
-                    COUNT(DISTINCT o.id) as order_count,
-                    SUM(o.total_amount) as revenue,
-                    SUM(oi.quantity) as total_quantity
-                FROM orders o
-                JOIN order_items oi ON o.id = oi.order_id
-                WHERE o.status = 'completed' AND DATE(o.created_at) = ?
-                GROUP BY strftime('%H', o.created_at)
-            """, (target_date,))
-            
-            rows = cursor.fetchall()
-            for row in rows:
-                hour_int = int(row['hour'])
-                reports[hour_int]['order_count'] = row['order_count']
-                reports[hour_int]['revenue'] = row['revenue'] or 0
-                reports[hour_int]['total_quantity'] = row['total_quantity'] or 0
+            # Điền dữ liệu thực tế
+            for order in result.data:
+                hour = int(order['created_at'][11:13])
+                reports[hour]['order_count'] += 1
+                reports[hour]['revenue'] += order['total_amount'] or 0
             
             return jsonify(reports)
         
@@ -285,34 +284,34 @@ def report_detail():
             from calendar import monthrange
             days_in_month = monthrange(year, month)[1]
             
+            # Lấy dữ liệu từ Supabase
+            start_date = f"{target_date}-01"
+            end_date = f"{target_date}-{days_in_month}"
+            
+            result = db.client.table('orders')\
+                .select('created_at, total_amount')\
+                .eq('status', 'completed')\
+                .gte('created_at', start_date)\
+                .lte('created_at', end_date)\
+                .execute()
+            
+            # Tạo mảng theo ngày
             reports = []
+            day_revenue = {}
+            day_count = {}
+            
+            for order in result.data:
+                day = int(order['created_at'][8:10])
+                day_revenue[day] = day_revenue.get(day, 0) + (order['total_amount'] or 0)
+                day_count[day] = day_count.get(day, 0) + 1
+            
             for d in range(1, days_in_month + 1):
                 reports.append({
                     'day': f"{year}-{month:02d}-{d:02d}",
-                    'order_count': 0,
-                    'revenue': 0,
+                    'order_count': day_count.get(d, 0),
+                    'revenue': day_revenue.get(d, 0),
                     'total_quantity': 0
                 })
-            
-            cursor = db.conn.cursor()
-            cursor.execute("""
-                SELECT 
-                    strftime('%d', o.created_at) as day,
-                    COUNT(DISTINCT o.id) as order_count,
-                    SUM(o.total_amount) as revenue,
-                    SUM(oi.quantity) as total_quantity
-                FROM orders o
-                JOIN order_items oi ON o.id = oi.order_id
-                WHERE o.status = 'completed' AND strftime('%Y-%m', o.created_at) = ?
-                GROUP BY strftime('%d', o.created_at)
-            """, (target_date,))
-            
-            rows = cursor.fetchall()
-            for row in rows:
-                day_int = int(row['day'])
-                reports[day_int - 1]['order_count'] = row['order_count']
-                reports[day_int - 1]['revenue'] = row['revenue'] or 0
-                reports[day_int - 1]['total_quantity'] = row['total_quantity'] or 0
             
             return jsonify(reports)
         
@@ -322,42 +321,41 @@ def report_detail():
             else:
                 year = datetime.now().year
             
+            # Lấy dữ liệu từ Supabase
+            result = db.client.table('orders')\
+                .select('created_at, total_amount')\
+                .eq('status', 'completed')\
+                .gte('created_at', f"{year}-01-01")\
+                .lt('created_at', f"{year + 1}-01-01")\
+                .execute()
+            
+            # Tạo mảng theo tháng
             reports = []
+            month_revenue = {}
+            month_count = {}
+            
+            for order in result.data:
+                month = int(order['created_at'][5:7])
+                month_revenue[month] = month_revenue.get(month, 0) + (order['total_amount'] or 0)
+                month_count[month] = month_count.get(month, 0) + 1
+            
             for m in range(1, 13):
                 reports.append({
                     'month': f"{year}-{m:02d}",
-                    'order_count': 0,
-                    'revenue': 0,
+                    'order_count': month_count.get(m, 0),
+                    'revenue': month_revenue.get(m, 0),
                     'total_quantity': 0
                 })
-            
-            cursor = db.conn.cursor()
-            cursor.execute("""
-                SELECT 
-                    strftime('%m', o.created_at) as month,
-                    COUNT(DISTINCT o.id) as order_count,
-                    SUM(o.total_amount) as revenue,
-                    SUM(oi.quantity) as total_quantity
-                FROM orders o
-                JOIN order_items oi ON o.id = oi.order_id
-                WHERE o.status = 'completed' AND strftime('%Y', o.created_at) = ?
-                GROUP BY strftime('%m', o.created_at)
-            """, (str(year),))
-            
-            rows = cursor.fetchall()
-            for row in rows:
-                month_int = int(row['month'])
-                reports[month_int - 1]['order_count'] = row['order_count']
-                reports[month_int - 1]['revenue'] = row['revenue'] or 0
-                reports[month_int - 1]['total_quantity'] = row['total_quantity'] or 0
             
             return jsonify(reports)
         
         return jsonify([])
         
     except Exception as e:
-        print(f"ERROR: {e}")
-        return jsonify({'error': str(e)}), 500
+        print(f"ERROR in report_detail: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify([])  # Trả về mảng rỗng thay vì object lỗi
         
 @app.route('/backup/full')
 @login_required
