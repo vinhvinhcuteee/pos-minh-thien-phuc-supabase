@@ -9,28 +9,64 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
       
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
-        
-      - name: Create backup
         run: |
-          TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
-          pg_dump "${{ secrets.SUPABASE_DB_URL }}" > "backup_${TIMESTAMP}.sql"
-          gzip "backup_${TIMESTAMP}.sql"
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          
+      - name: Create timestamp
+        run: echo "TIMESTAMP=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_ENV
+          
+      - name: Backup database (force IPv4)
+        run: |
+          # Lấy URL từ secrets và thay đổi hostname để force IPv4
+          DB_URL="${{ secrets.SUPABASE_DB_URL }}"
+          
+          # Chuyển đổi hostname từ dạng db.xxx.supabase.co thành IPv4 address
+          # Hoặc dùng lệnh pg_dump với parameter hostaddr
+          HOST=$(echo $DB_URL | sed -E 's/.*@([^:]+):.*/\1/')
+          PORT=$(echo $DB_URL | sed -E 's/.*:([0-9]+)\/.*/\1/')
+          USER=$(echo $DB_URL | sed -E 's/.*:\/\/([^:]+):.*/\1/')
+          PASSWORD=$(echo $DB_URL | sed -E 's/.*:([^:]+)@.*/\1/')
+          DBNAME=$(echo $DB_URL | sed -E 's/.*\/([^?]+).*/\1/')
+          
+          echo "Connecting to $HOST:$PORT"
+          
+          # Force dùng IPv4 bằng cách resolve hostname ra IP
+          IPV4=$(dig +short $HOST A | head -1)
+          echo "Resolved IPv4: $IPV4"
+          
+          PGPASSWORD="$PASSWORD" pg_dump -h "$IPV4" -p "$PORT" -U "$USER" -d "$DBNAME" > "backup_${{ env.TIMESTAMP }}.sql"
+          
+          echo "Backup completed: backup_${{ env.TIMESTAMP }}.sql"
+          
+      - name: Compress backup
+        run: |
+          gzip "backup_${{ env.TIMESTAMP }}.sql"
+          ls -la
           
       - name: Install rclone
-        run: curl -fsSL https://rclone.org/install.sh | sudo bash
-        
-      - name: Setup Google Drive
         run: |
-          echo '${{ secrets.GDRIVE_SA_JSON }}' > /tmp/sa.json
-          rclone config create gdrive drive \
-            service_account_file=/tmp/sa.json \
-            --non-interactive
+          curl -fsSL https://rclone.org/install.sh | sudo bash
+          
+      - name: Create rclone config
+        run: |
+          mkdir -p ~/.config/rclone
+          echo '${{ secrets.GDRIVE_SA_JSON }}' > ~/.config/rclone/sa.json
+          cat > ~/.config/rclone/rclone.conf << EOF
+          [gdrive]
+          type = drive
+          scope = drive.file
+          service_account_file = ~/.config/rclone/sa.json
+          EOF
           
       - name: Upload to Google Drive
         run: |
-          rclone copy "backup_${{ env.TIMESTAMP }}.sql.gz" gdrive: --drive-root-folder-id "${{ secrets.GDRIVE_FOLDER_ID }}"
+          rclone copy "backup_${{ env.TIMESTAMP }}.sql.gz" gdrive: --drive-root-folder-id "${{ secrets.GDRIVE_FOLDER_ID }}" -v
+          
+      - name: Verify upload
+        run: |
+          rclone ls gdrive: --drive-root-folder-id "${{ secrets.GDRIVE_FOLDER_ID }}"
