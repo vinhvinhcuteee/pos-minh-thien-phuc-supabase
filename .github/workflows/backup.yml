@@ -9,24 +9,38 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
-      - name: Install PostgreSQL client
+      - name: Install PostgreSQL client and dig
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          sudo apt-get install -y postgresql-client dnsutils
           
-      - name: Backup database
+      - name: Get IPv4 address of Supabase
+        run: |
+          # Lấy IPv4 của host
+          IPV4=$(dig +short db.fefrmoncjvfkjsmvujhc.supabase.co A | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          echo "IPv4=$IPV4" >> $GITHUB_ENV
+          echo "IPv4 address: $IPV4"
+          
+      - name: Backup database using IPv4
         run: |
           TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
           echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
           
-          # Dùng trực tiếp URL
-          pg_dump "${{ secrets.SUPABASE_DB_URL }}" > "backup_${TIMESTAMP}.sql"
+          # Dùng IPv4 thay vì hostname
+          PGPASSWORD="Vohoangvinh0807" pg_dump \
+            -h "${{ env.IPv4 }}" \
+            -p 5432 \
+            -U "postgres.fefrmoncjvfkjsmvujhc" \
+            -d "postgres" \
+            > "backup_${TIMESTAMP}.sql"
           
-          # Nén file
-          gzip "backup_${TIMESTAMP}.sql"
+          echo "Backup completed!"
+          ls -lh "backup_${TIMESTAMP}.sql"
           
-          # Hiển thị dung lượng
-          ls -lh "backup_${TIMESTAMP}.sql.gz"
+      - name: Compress backup
+        run: |
+          gzip "backup_${{ env.TIMESTAMP }}.sql"
+          ls -lh "backup_${{ env.TIMESTAMP }}.sql.gz"
           
       - name: Upload backup to GitHub
         uses: actions/upload-artifact@v4
