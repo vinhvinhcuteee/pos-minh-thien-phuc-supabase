@@ -20,28 +20,11 @@ jobs:
       - name: Create timestamp
         run: echo "TIMESTAMP=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_ENV
           
-      - name: Backup database (force IPv4)
+      - name: Backup database (direct URL)
         run: |
-          # Lấy URL từ secrets và thay đổi hostname để force IPv4
-          DB_URL="${{ secrets.SUPABASE_DB_URL }}"
-          
-          # Chuyển đổi hostname từ dạng db.xxx.supabase.co thành IPv4 address
-          # Hoặc dùng lệnh pg_dump với parameter hostaddr
-          HOST=$(echo $DB_URL | sed -E 's/.*@([^:]+):.*/\1/')
-          PORT=$(echo $DB_URL | sed -E 's/.*:([0-9]+)\/.*/\1/')
-          USER=$(echo $DB_URL | sed -E 's/.*:\/\/([^:]+):.*/\1/')
-          PASSWORD=$(echo $DB_URL | sed -E 's/.*:([^:]+)@.*/\1/')
-          DBNAME=$(echo $DB_URL | sed -E 's/.*\/([^?]+).*/\1/')
-          
-          echo "Connecting to $HOST:$PORT"
-          
-          # Force dùng IPv4 bằng cách resolve hostname ra IP
-          IPV4=$(dig +short $HOST A | head -1)
-          echo "Resolved IPv4: $IPV4"
-          
-          PGPASSWORD="$PASSWORD" pg_dump -h "$IPV4" -p "$PORT" -U "$USER" -d "$DBNAME" > "backup_${{ env.TIMESTAMP }}.sql"
-          
-          echo "Backup completed: backup_${{ env.TIMESTAMP }}.sql"
+          # Dùng trực tiếp URL, không cần parse
+          pg_dump "${{ secrets.SUPABASE_DB_URL }}" > "backup_${{ env.TIMESTAMP }}.sql"
+          echo "Backup completed"
           
       - name: Compress backup
         run: |
@@ -67,6 +50,6 @@ jobs:
         run: |
           rclone copy "backup_${{ env.TIMESTAMP }}.sql.gz" gdrive: --drive-root-folder-id "${{ secrets.GDRIVE_FOLDER_ID }}" -v
           
-      - name: Verify upload
+      - name: Clean old backups
         run: |
-          rclone ls gdrive: --drive-root-folder-id "${{ secrets.GDRIVE_FOLDER_ID }}"
+          find . -name "backup_*.sql.gz" -mtime +30 -delete
