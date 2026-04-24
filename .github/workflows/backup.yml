@@ -1,0 +1,36 @@
+name: Backup Supabase to Google Drive
+
+on:
+  schedule:
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        
+      - name: Create backup
+        run: |
+          TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
+          pg_dump "${{ secrets.SUPABASE_DB_URL }}" > "backup_${TIMESTAMP}.sql"
+          gzip "backup_${TIMESTAMP}.sql"
+          
+      - name: Install rclone
+        run: curl -fsSL https://rclone.org/install.sh | sudo bash
+        
+      - name: Setup Google Drive
+        run: |
+          echo '${{ secrets.GDRIVE_SA_JSON }}' > /tmp/sa.json
+          rclone config create gdrive drive \
+            service_account_file=/tmp/sa.json \
+            --non-interactive
+          
+      - name: Upload to Google Drive
+        run: |
+          rclone copy "backup_${{ env.TIMESTAMP }}.sql.gz" gdrive: --drive-root-folder-id "${{ secrets.GDRIVE_FOLDER_ID }}"
