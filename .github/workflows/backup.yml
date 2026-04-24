@@ -1,4 +1,4 @@
-name: Backup Supabase to Google Drive
+name: Backup Supabase
 
 on:
   schedule:
@@ -9,47 +9,28 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
       - name: Install PostgreSQL client
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-client
           
-      - name: Create timestamp
-        run: echo "TIMESTAMP=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_ENV
-          
-      - name: Backup database (direct URL)
+      - name: Backup database
         run: |
-          # Dùng trực tiếp URL, không cần parse
-          pg_dump "${{ secrets.SUPABASE_DB_URL }}" > "backup_${{ env.TIMESTAMP }}.sql"
-          echo "Backup completed"
+          TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
+          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
           
-      - name: Compress backup
-        run: |
-          gzip "backup_${{ env.TIMESTAMP }}.sql"
-          ls -la
+          # Dùng trực tiếp URL
+          pg_dump "${{ secrets.SUPABASE_DB_URL }}" > "backup_${TIMESTAMP}.sql"
           
-      - name: Install rclone
-        run: |
-          curl -fsSL https://rclone.org/install.sh | sudo bash
+          # Nén file
+          gzip "backup_${TIMESTAMP}.sql"
           
-      - name: Create rclone config
-        run: |
-          mkdir -p ~/.config/rclone
-          echo '${{ secrets.GDRIVE_SA_JSON }}' > ~/.config/rclone/sa.json
-          cat > ~/.config/rclone/rclone.conf << EOF
-          [gdrive]
-          type = drive
-          scope = drive.file
-          service_account_file = ~/.config/rclone/sa.json
-          EOF
+          # Hiển thị dung lượng
+          ls -lh "backup_${TIMESTAMP}.sql.gz"
           
-      - name: Upload to Google Drive
-        run: |
-          rclone copy "backup_${{ env.TIMESTAMP }}.sql.gz" gdrive: --drive-root-folder-id "${{ secrets.GDRIVE_FOLDER_ID }}" -v
-          
-      - name: Clean old backups
-        run: |
-          find . -name "backup_*.sql.gz" -mtime +30 -delete
+      - name: Upload backup to GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-backup-${{ env.TIMESTAMP }}
+          path: backup_*.sql.gz
+          retention-days: 30
