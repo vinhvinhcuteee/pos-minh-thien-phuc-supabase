@@ -44,27 +44,24 @@ class Database:
     def add_product(self, data):
         """Thêm sản phẩm mới vào Supabase"""
         try:
-            print(f"🔥 add_product nhận data: {data}")
+            print(f"🔥 database.add_product nhận: {data}")
+            print(f"🔥 Các keys: {list(data.keys()) if data else 'None'}")
         
-            # CHỈ lấy các trường cần thiết, KHÔNG có id
-            product_data = {
-                'name': str(data.get('name', '')),
-                'price': int(data.get('price', 0)),
-                'cost_price': int(data.get('cost_price', 0)),
-                'stock': int(data.get('stock', 0)),
-                'category': str(data.get('category', ''))
-            }
+        # Tạo bản sao và loại bỏ id
+            insert_data = {}
+            for key, value in data.items():
+                if key != 'id':  # Bỏ qua trường id
+                    insert_data[key] = value
         
-            print(f"🔥 Dữ liệu insert (không có id): {product_data}")
+            print(f"🔥 Dữ liệu insert (đã loại id): {insert_data}")
         
             if not self.client:
                 print("❌ Chưa kết nối Supabase!")
                 return None
         
-            # Insert - Supabase sẽ tự tạo id mới
-            result = self.client.table('products').insert(product_data).execute()
+            result = self.client.table('products').insert(insert_data).execute()
         
-            print(f"🔥 Kết quả: {result.data}")
+            print(f"🔥 Kết quả từ Supabase: {result.data}")
         
             if result.data and len(result.data) > 0:
                 product_id = result.data[0].get('id')
