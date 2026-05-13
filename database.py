@@ -42,6 +42,7 @@ class Database:
             return []
 
     def add_product(self, data):
+        print(f"🔥🔥🔥 add_product được gọi với data: {data}") 
         """Thêm sản phẩm mới vào Supabase"""
         try:
             result = self.client.table('products').insert({
