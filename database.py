@@ -42,11 +42,18 @@ class Database:
             return []
 
     def add_product(self, data):
+        cursor = self.conn.cursor()
         try:
-            result = self.client.table('products').insert(data).execute()
-            return result.data[0]['id'] if result.data else None
+            cursor.execute('''
+                INSERT INTO products (name, price, cost_price, stock, category)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (data['name'], data['price'], data.get('cost_price', 0), 
+                  data.get('stock', 0), data.get('category', '')))
+            self.conn.commit()
+            return cursor.lastrowid
         except Exception as e:
-            print(f"Lỗi add_product: {e}")
+            print(f"❌ Lỗi add_product: {e}")
+            self.conn.rollback()
             return None
 
     def update_product(self, product_id, data):
