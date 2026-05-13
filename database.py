@@ -46,7 +46,7 @@ class Database:
         try:
             print(f"🔥 add_product nhận data: {data}")
         
-            # Đảm bảo dữ liệu có đủ các trường
+            # CHỈ lấy các trường cần thiết, KHÔNG có id
             product_data = {
                 'name': str(data.get('name', '')),
                 'price': int(data.get('price', 0)),
@@ -55,24 +55,23 @@ class Database:
                 'category': str(data.get('category', ''))
             }
         
-            print(f"🔥 Dữ liệu sau khi xử lý: {product_data}")
+            print(f"🔥 Dữ liệu insert (không có id): {product_data}")
         
-        # Kiểm tra kết nối
             if not self.client:
                 print("❌ Chưa kết nối Supabase!")
                 return None
         
-        # Thực hiện insert
+            # Insert - Supabase sẽ tự tạo id mới
             result = self.client.table('products').insert(product_data).execute()
         
-            print(f"🔥 Kết quả từ Supabase: {result}")
+            print(f"🔥 Kết quả: {result.data}")
         
             if result.data and len(result.data) > 0:
                 product_id = result.data[0].get('id')
-                print(f"✅ Thêm thành công! ID: {product_id}")
+                print(f"✅ Thêm thành công! ID mới: {product_id}")
                 return product_id
             else:
-                print("❌ Supabase không trả về dữ liệu")
+                print("❌ Không có dữ liệu trả về")
                 return None
             
         except Exception as e:
