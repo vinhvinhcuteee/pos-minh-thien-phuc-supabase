@@ -42,46 +42,27 @@ class Database:
             return []
 
     def add_product(self, data):
-        print(f"🔥🔥🔥 add_product được gọi với data: {data}") 
-        """Thêm sản phẩm mới vào Supabase"""
         try:
-            result = self.client.table('products').insert({
-                'name': data['name'],
-                'price': data['price'],
-                'cost_price': data.get('cost_price', 0),
-                'stock': data.get('stock', 0),
-                'category': data.get('category', '')
-            }).execute()
-        
-            if result.data:
-                return result.data[0]['id']
-            return None
+            result = self.client.table('products').insert(data).execute()
+            return result.data[0]['id'] if result.data else None
         except Exception as e:
-            print(f"❌ Lỗi add_product: {e}")
+            print(f"Lỗi add_product: {e}")
             return None
 
     def update_product(self, product_id, data):
-        """Cập nhật sản phẩm"""
         try:
-            self.client.table('products').update({
-                'name': data['name'],
-                'price': data['price'],
-                'cost_price': data.get('cost_price', 0),
-                'stock': data.get('stock', 0),
-                'category': data.get('category', '')
-            }).eq('id', product_id).execute()
+            self.client.table('products').update(data).eq('id', product_id).execute()
             return True
         except Exception as e:
-            print(f"❌ Lỗi update_product: {e}")
+            print(f"Lỗi update_product: {e}")
             return False
 
     def delete_product(self, product_id):
-        """Xóa sản phẩm"""
         try:
             self.client.table('products').delete().eq('id', product_id).execute()
             return True
         except Exception as e:
-            print(f"❌ Lỗi delete_product: {e}")
+            print(f"Lỗi delete_product: {e}")
             return False
 
     # ==================== KHÁCH HÀNG ====================
