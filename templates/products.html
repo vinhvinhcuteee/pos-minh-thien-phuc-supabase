@@ -55,7 +55,7 @@
             padding: 20px;
         }
         
-        /* Thanh công cụ: tìm kiếm + phân loại (bỏ phân loại) */
+        /* Thanh công cụ: tìm kiếm + phân loại */
         .toolbar {
             display: flex;
             flex-wrap: wrap;
@@ -71,7 +71,7 @@
         
         .search-box {
             flex: 2;
-            min-width: 250px;
+            min-width: 200px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -98,7 +98,22 @@
         
         .search-box span {
             color: #9ca3af;
-            font-size: 1rem;
+        }
+        
+        .filter-group {
+            flex: 1;
+            min-width: 160px;
+        }
+        
+        .filter-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 32px;
+            border: 1px solid #e5e7eb;
+            background-color: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            outline: none;
         }
         
         .btn-add {
@@ -109,14 +124,12 @@
             border-radius: 40px;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.2s;
             font-size: 0.9rem;
             white-space: nowrap;
         }
         
         .btn-add:hover {
             background: #059669;
-            transform: scale(1.02);
         }
         
         .stats-info {
@@ -137,7 +150,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 600px;
+            min-width: 650px;
         }
         
         th, td {
@@ -159,7 +172,6 @@
             cursor: pointer;
             margin: 0 4px;
             font-weight: 500;
-            transition: 0.2s;
         }
         
         .btn-edit {
@@ -202,32 +214,27 @@
             background: white;
             border-radius: 24px;
             padding: 28px;
-            max-width: 500px;
+            max-width: 520px;
             width: 100%;
-            box-shadow: 0 20px 35px -8px rgba(0,0,0,0.2);
         }
         
         .modal-content h2 {
             margin-bottom: 20px;
             color: #0f172a;
-            font-weight: 600;
-            font-size: 1.5rem;
         }
         
-        .modal-content input {
+        .modal-content input, .modal-content select {
             width: 100%;
             padding: 12px 14px;
             margin-bottom: 16px;
             border: 1px solid #e2e8f0;
             border-radius: 16px;
             font-size: 0.95rem;
-            transition: 0.2s;
         }
         
-        .modal-content input:focus {
+        .modal-content input:focus, .modal-content select:focus {
             outline: none;
             border-color: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
         }
         
         .modal-buttons {
@@ -243,7 +250,6 @@
             border-radius: 40px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 0.9rem;
         }
         
         .btn-save {
@@ -272,6 +278,14 @@
             color: #64748b;
             font-style: italic;
         }
+        
+        .category-badge {
+            background: #e2e8f0;
+            padding: 4px 10px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -288,18 +302,27 @@
     </div>
     
     <div class="container">
-        <!-- Thanh công cụ: chỉ còn tìm kiếm và nút thêm -->
         <div class="toolbar">
             <div class="search-box">
                 <span>🔍</span>
-                <input type="text" id="searchInput" placeholder="Tìm kiếm sản phẩm..." autocomplete="off">
+                <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên hoặc danh mục...">
+            </div>
+            <div class="filter-group">
+                <select id="categoryFilter">
+                    <option value="ALL">Tất cả danh mục</option>
+                    <option value="Nệm">Nệm</option>
+                    <option value="Gối">Gối</option>
+                    <option value="Gra">Gra</option>
+                    <option value="Chiếu">Chiếu</option>
+                    <option value="Rèm cửa">Rèm cửa</option>
+                    <option value="Chăn">Chăn</option>
+                </select>
             </div>
             <button class="btn-add" onclick="openAddModal()">+ THÊM SẢN PHẨM</button>
         </div>
         
-        <!-- Hiển thị thông tin thống kê -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <div class="stats-info" id="statsInfo">Đang tải dữ liệu...</div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+            <div class="stats-info" id="statsInfo">Đang tải...</div>
             <div class="stats-info" id="filterInfo"></div>
         </div>
         
@@ -312,17 +335,18 @@
                         <th>GIÁ BÁN</th>
                         <th>GIÁ VỐN</th>
                         <th>TỒN KHO</th>
+                        <th>DANH MỤC</th>
                         <th>THAO TÁC</th>
                     </tr>
                 </thead>
                 <tbody id="productsTableBody">
-                    <tr><td colspan="6" class="no-data">Đang tải...</td></tr>
+                    <tr><td colspan="7" class="no-data">Đang tải...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
     
-    <!-- Modal thêm/sửa sản phẩm (đã bỏ phần chọn danh mục) -->
+    <!-- Modal thêm/sửa sản phẩm - giữ nguyên mọi field -->
     <div id="productModal" class="modal">
         <div class="modal-content">
             <h2 id="modalTitle">THÊM SẢN PHẨM</h2>
@@ -331,6 +355,15 @@
             <input type="number" id="productPrice" placeholder="Giá bán (VNĐ)" required>
             <input type="number" id="productCost" placeholder="Giá vốn (VNĐ)" required>
             <input type="number" id="productStock" placeholder="Tồn kho" required>
+            <select id="productCategory">
+                <option value="">-- Chọn danh mục --</option>
+                <option value="Nệm">Nệm</option>
+                <option value="Gối">Gối</option>
+                <option value="Gra">Gra</option>
+                <option value="Chiếu">Chiếu</option>
+                <option value="Rèm cửa">Rèm cửa</option>
+                <option value="Chăn">Chăn</option>
+            </select>
             <div class="modal-buttons">
                 <button class="btn-save" onclick="saveProduct()">LƯU</button>
                 <button class="btn-cancel" onclick="closeModal()">HỦY</button>
@@ -339,84 +372,78 @@
     </div>
     
     <script>
-        // ---------- TOÀN BỘ LOGIC GIỮ NGUYÊN BIẾN, API, CẤU TRÚC DỮ LIỆU ----------
-        // Biến lưu danh sách sản phẩm gốc từ server
+        // ---------- GIỮ NGUYÊN TOÀN BỘ LOGIC, BIẾN, CÁCH KẾT NỐI DATA ----------
         let allProducts = [];
         
-        // Hàm tải sản phẩm từ API /api/products
         async function loadProducts() {
-            try {
-                const res = await fetch('/api/products');
-                allProducts = await res.json();
-                // Sau khi load, áp dụng bộ lọc tìm kiếm
-                applyFiltersAndRender();
-            } catch (error) {
-                console.error("Lỗi tải sản phẩm:", error);
-                const tbody = document.getElementById('productsTableBody');
-                tbody.innerHTML = '<tr><td colspan="6" class="no-data">Không thể tải dữ liệu, vui lòng kiểm tra kết nối</td></tr>';
-                document.getElementById('statsInfo').innerText = 'Lỗi kết nối';
-            }
+            const res = await fetch('/api/products');
+            allProducts = await res.json();
+            applyFiltersAndRender();
         }
         
-        // Lấy giá trị tìm kiếm
         function getSearchTerm() {
             return document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
         }
         
-        // Hàm lọc sản phẩm dựa trên tìm kiếm (tên sản phẩm)
+        function getCategoryValue() {
+            return document.getElementById('categoryFilter')?.value || 'ALL';
+        }
+        
         function filterProducts() {
             const searchTerm = getSearchTerm();
+            const categoryFilter = getCategoryValue();
+            let filtered = [...allProducts];
             
-            if (searchTerm === '') {
-                return [...allProducts];
+            if (searchTerm !== '') {
+                filtered = filtered.filter(p => {
+                    const name = (p.name || '').toLowerCase();
+                    const cat = (p.category || '').toLowerCase();
+                    return name.includes(searchTerm) || cat.includes(searchTerm);
+                });
             }
             
-            return allProducts.filter(p => {
-                const productName = (p.name || '').toLowerCase();
-                return productName.includes(searchTerm);
-            });
+            if (categoryFilter !== 'ALL') {
+                filtered = filtered.filter(p => (p.category || '') === categoryFilter);
+            }
+            return filtered;
         }
         
-        // Cập nhật thống kê hiển thị
-        function updateStatsInfo(filteredProducts) {
-            const totalOriginal = allProducts.length;
-            const filteredCount = filteredProducts.length;
+        function updateStatsInfo(filtered) {
+            const total = allProducts.length;
+            const filteredCount = filtered.length;
             const statsDiv = document.getElementById('statsInfo');
-            const filterInfoDiv = document.getElementById('filterInfo');
+            const filterDiv = document.getElementById('filterInfo');
             
-            if (totalOriginal === 0) {
+            if (total === 0) {
                 statsDiv.innerHTML = 'Chưa có sản phẩm';
-                filterInfoDiv.innerHTML = '';
+                filterDiv.innerHTML = '';
                 return;
             }
             
-            statsDiv.innerHTML = `Tổng số sản phẩm: ${totalOriginal}`;
-            
-            if (filteredCount !== totalOriginal) {
-                filterInfoDiv.innerHTML = `Hiển thị ${filteredCount} / ${totalOriginal} sản phẩm`;
-            } else if (getSearchTerm() !== '') {
-                filterInfoDiv.innerHTML = `Kết quả tìm kiếm: ${filteredCount} sản phẩm`;
+            statsDiv.innerHTML = `Tổng số: ${total}`;
+            if (filteredCount !== total) {
+                filterDiv.innerHTML = `Hiển thị ${filteredCount} / ${total}`;
+            } else if (getSearchTerm() !== '' || getCategoryValue() !== 'ALL') {
+                filterDiv.innerHTML = `Kết quả: ${filteredCount} sản phẩm`;
             } else {
-                filterInfoDiv.innerHTML = `Tất cả sản phẩm`;
+                filterDiv.innerHTML = `Tất cả sản phẩm`;
             }
         }
         
-        // Render bảng sản phẩm dựa trên mảng đã lọc
-        function renderProductsTable(productsToRender) {
+        function renderProductsTable(products) {
             const tbody = document.getElementById('productsTableBody');
-            
-            if (!productsToRender.length) {
-                tbody.innerHTML = '<tr><td colspan="6" class="no-data">Không có sản phẩm nào phù hợp</td></tr>';
+            if (!products.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-data">Chưa có sản phẩm</td></tr>';
                 return;
             }
-            
-            tbody.innerHTML = productsToRender.map(p => `
+            tbody.innerHTML = products.map(p => `
                 <tr>
                     <td>${p.id}</td>
                     <td>${escapeHtml(p.name)}</td>
                     <td>${formatMoney(p.price)}</td>
                     <td>${formatMoney(p.cost_price || 0)}</td>
                     <td>${p.stock}</td>
+                    <td>${p.category ? `<span class="category-badge">${escapeHtml(p.category)}</span>` : '<span class="category-badge">Chưa phân loại</span>'}</td>
                     <td>
                         <button class="btn-edit" onclick="editProduct(${p.id})">SỬA</button>
                         <button class="btn-delete" onclick="deleteProduct(${p.id})">XÓA</button>
@@ -425,25 +452,17 @@
             `).join('');
         }
         
-        // Hàm chính kết hợp filter và render
         function applyFiltersAndRender() {
             const filtered = filterProducts();
             updateStatsInfo(filtered);
             renderProductsTable(filtered);
         }
         
-        // Gắn sự kiện realtime cho ô tìm kiếm
         function bindFilterEvents() {
-            const searchInput = document.getElementById('searchInput');
-            
-            if (searchInput) {
-                searchInput.addEventListener('input', () => {
-                    applyFiltersAndRender();
-                });
-            }
+            document.getElementById('searchInput').addEventListener('input', () => applyFiltersAndRender());
+            document.getElementById('categoryFilter').addEventListener('change', () => applyFiltersAndRender());
         }
         
-        // ---------- CÁC HÀM THÊM, SỬA, XÓA (GIỮ NGUYÊN LOGIC GỐC) ----------
         function openAddModal() {
             document.getElementById('modalTitle').innerText = 'THÊM SẢN PHẨM';
             document.getElementById('productId').value = '';
@@ -451,15 +470,14 @@
             document.getElementById('productPrice').value = '';
             document.getElementById('productCost').value = '';
             document.getElementById('productStock').value = '';
+            document.getElementById('productCategory').value = '';
             document.getElementById('productModal').classList.add('active');
         }
         
         async function editProduct(id) {
-            // Lấy lại danh sách mới nhất để tránh conflict
             const res = await fetch('/api/products');
             const products = await res.json();
             const product = products.find(p => p.id === id);
-            
             if (product) {
                 document.getElementById('modalTitle').innerText = 'SỬA SẢN PHẨM';
                 document.getElementById('productId').value = product.id;
@@ -467,62 +485,52 @@
                 document.getElementById('productPrice').value = product.price;
                 document.getElementById('productCost').value = product.cost_price || 0;
                 document.getElementById('productStock').value = product.stock;
+                document.getElementById('productCategory').value = product.category || '';
                 document.getElementById('productModal').classList.add('active');
-            } else {
-                alert('Không tìm thấy sản phẩm!');
             }
         }
         
         async function saveProduct() {
             const id = document.getElementById('productId').value;
-            
             const data = {
                 name: document.getElementById('productName').value,
                 price: parseInt(document.getElementById('productPrice').value),
                 cost_price: parseInt(document.getElementById('productCost').value) || 0,
-                stock: parseInt(document.getElementById('productStock').value)
+                stock: parseInt(document.getElementById('productStock').value),
+                category: document.getElementById('productCategory').value
             };
             
-            if (!data.name || isNaN(data.price) || isNaN(data.stock)) {
-                alert('Vui lòng nhập đầy đủ thông tin: Tên, Giá bán, Tồn kho!');
+            if (!data.name || !data.price) {
+                alert('Vui lòng nhập đầy đủ thông tin!');
                 return;
             }
             
             const url = id ? `/api/products/${id}` : '/api/products';
             const method = id ? 'PUT' : 'POST';
             
-            try {
-                const res = await fetch(url, {
-                    method: method,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                
-                if (res.ok) {
-                    alert(id ? 'Cập nhật thành công!' : 'Thêm sản phẩm thành công!');
-                    closeModal();
-                    await loadProducts();  // reload lại toàn bộ sản phẩm
-                } else {
-                    const errorMsg = await res.text();
-                    alert(`Có lỗi xảy ra: ${errorMsg || 'Vui lòng thử lại'}`);
-                }
-            } catch (err) {
-                alert('Lỗi kết nối tới server!');
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            if (res.ok) {
+                alert(id ? 'Cập nhật thành công!' : 'Thêm thành công!');
+                closeModal();
+                loadProducts();
+            } else {
+                alert('Có lỗi xảy ra!');
             }
         }
         
         async function deleteProduct(id) {
             if (confirm('Bạn có chắc muốn xóa sản phẩm này?')) {
-                try {
-                    const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-                    if (res.ok) {
-                        alert('Xóa thành công!');
-                        await loadProducts();   // refresh toàn bộ
-                    } else {
-                        alert('Xóa thất bại! Mã lỗi: ' + res.status);
-                    }
-                } catch (err) {
-                    alert('Không thể xóa, kiểm tra kết nối.');
+                const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    alert('Xóa thành công!');
+                    loadProducts();
+                } else {
+                    alert('Xóa thất bại!');
                 }
             }
         }
@@ -532,7 +540,6 @@
         }
         
         function formatMoney(amount) {
-            if (isNaN(amount)) amount = 0;
             return new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
         }
         
@@ -543,14 +550,9 @@
             return div.innerHTML;
         }
         
-        // Khởi tạo trang: load dữ liệu và gắn sự kiện tìm kiếm
-        async function init() {
-            await loadProducts();
-            bindFilterEvents();
-        }
-        
-        // Bắt đầu
-        init();
+        // Khởi chạy
+        loadProducts();
+        bindFilterEvents();
     </script>
 </body>
 </html>
