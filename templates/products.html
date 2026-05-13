@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý sản phẩm - CỬA HÀNG MINH THIÊN PHÚC</title>
+    <title>Quản lý sản phẩm - NỆM GỐI GRA CHIẾU</title>
     <style>
         * {
             margin: 0;
@@ -96,15 +96,14 @@
             outline: none;
         }
         
-        .search-box i {
+        .search-box span {
             color: #9ca3af;
-            font-style: normal;
-            font-weight: normal;
+            font-size: 1rem;
         }
         
         .filter-group {
             flex: 1;
-            min-width: 160px;
+            min-width: 180px;
         }
         
         .filter-group select {
@@ -307,7 +306,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>QUẢN LÝ SẢN PHẨM</h1>
+        <h1>QUẢN LÝ SẢN PHẨM - NỆM, GỐI, GRA, CHIẾU</h1>
         <div class="nav-links">
             <a href="/">BÁN HÀNG</a>
             <a href="/products">SẢN PHẨM</a>
@@ -322,17 +321,18 @@
         <!-- Thanh công cụ tích hợp tìm kiếm + phân loại -->
         <div class="toolbar">
             <div class="search-box">
-                <i>🔍</i>
+                <span>🔍</span>
                 <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên hoặc danh mục..." autocomplete="off">
             </div>
             <div class="filter-group">
                 <select id="categoryFilter">
-                    <option value="ALL">📂 Tất cả danh mục</option>
-                    <option value="Điện thoại">📱 Điện thoại</option>
-                    <option value="Laptop">💻 Laptop</option>
-                    <option value="Phụ kiện">🎧 Phụ kiện</option>
-                    <option value="Đồng hồ">⌚ Đồng hồ</option>
-                    <option value="Máy tính bảng">📟 Máy tính bảng</option>
+                    <option value="ALL">Tất cả danh mục</option>
+                    <option value="Nệm">Nệm</option>
+                    <option value="Gối">Gối</option>
+                    <option value="Gra">Gra</option>
+                    <option value="Chiếu">Chiếu</option>
+                    <option value="Drapery">Rèm cửa</option>
+                    <option value="Chăn">Chăn</option>
                 </select>
             </div>
             <button class="btn-add" onclick="openAddModal()">+ THÊM SẢN PHẨM</button>
@@ -364,7 +364,7 @@
         </div>
     </div>
     
-    <!-- Modal thêm/sửa sản phẩm: giữ nguyên mọi field -->
+    <!-- Modal thêm/sửa sản phẩm: danh mục được tùy chỉnh cho nệm, gối, gra, chiếu -->
     <div id="productModal" class="modal">
         <div class="modal-content">
             <h2 id="modalTitle">THÊM SẢN PHẨM</h2>
@@ -375,12 +375,13 @@
             <input type="number" id="productStock" placeholder="Tồn kho" required>
             <select id="productCategory">
                 <option value="">-- Chọn danh mục --</option>
-                <option value="Điện thoại">📱 Điện thoại</option>
-                <option value="Laptop">💻 Laptop</option>
-                <option value="Phụ kiện">🎧 Phụ kiện</option>
-                <option value="Đồng hồ">⌚ Đồng hồ</option>
-                <option value="Máy tính bảng">📟 Máy tính bảng</option>
-                <option value="Khác">📦 Khác</option>
+                <option value="Nệm">Nệm</option>
+                <option value="Gối">Gối</option>
+                <option value="Gra">Gra</option>
+                <option value="Chiếu">Chiếu</option>
+                <option value="Drapery">Rèm cửa</option>
+                <option value="Chăn">Chăn</option>
+                <option value="Khác">Khác</option>
             </select>
             <div class="modal-buttons">
                 <button class="btn-save" onclick="saveProduct()">LƯU</button>
@@ -450,23 +451,23 @@
             const filterInfoDiv = document.getElementById('filterInfo');
             
             if (totalOriginal === 0) {
-                statsDiv.innerHTML = '📦 Chưa có sản phẩm';
+                statsDiv.innerHTML = 'Chưa có sản phẩm';
                 filterInfoDiv.innerHTML = '';
                 return;
             }
             
-            statsDiv.innerHTML = `📊 Tổng số sản phẩm: ${totalOriginal}`;
+            statsDiv.innerHTML = `Tổng số sản phẩm: ${totalOriginal}`;
             
             if (filteredCount !== totalOriginal) {
-                filterInfoDiv.innerHTML = `🔍 Hiển thị ${filteredCount} / ${totalOriginal} sản phẩm`;
+                filterInfoDiv.innerHTML = `Hiển thị ${filteredCount} / ${totalOriginal} sản phẩm`;
             } else {
                 const categorySelected = getCategoryValue();
                 if (categorySelected !== 'ALL') {
-                    filterInfoDiv.innerHTML = `🏷️ Danh mục: ${categorySelected} (${filteredCount} sản phẩm)`;
+                    filterInfoDiv.innerHTML = `Danh mục: ${categorySelected} (${filteredCount} sản phẩm)`;
                 } else if (getSearchTerm() !== '') {
-                    filterInfoDiv.innerHTML = `🔎 Kết quả tìm kiếm: ${filteredCount} sản phẩm`;
+                    filterInfoDiv.innerHTML = `Kết quả tìm kiếm: ${filteredCount} sản phẩm`;
                 } else {
-                    filterInfoDiv.innerHTML = `✨ Tất cả sản phẩm`;
+                    filterInfoDiv.innerHTML = `Tất cả sản phẩm`;
                 }
             }
         }
@@ -476,7 +477,7 @@
             const tbody = document.getElementById('productsTableBody');
             
             if (!productsToRender.length) {
-                tbody.innerHTML = '<tr><td colspan="7" class="no-data">📭 Không có sản phẩm nào phù hợp</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="no-data">Không có sản phẩm nào phù hợp</td></tr>';
                 return;
             }
             
@@ -565,12 +566,15 @@
             // Lấy giá trị từ select category
             const categoryValue = document.getElementById('productCategory').value;
             
+            // Kiểm tra nếu danh mục trống thì vẫn cho phép lưu (để tránh lỗi nhập liệu)
+            const finalCategory = categoryValue && categoryValue.trim() !== "" ? categoryValue : "";
+            
             const data = {
                 name: document.getElementById('productName').value,
                 price: parseInt(document.getElementById('productPrice').value),
                 cost_price: parseInt(document.getElementById('productCost').value) || 0,
                 stock: parseInt(document.getElementById('productStock').value),
-                category: categoryValue || ''   // nếu không chọn thì lưu chuỗi rỗng
+                category: finalCategory
             };
             
             if (!data.name || isNaN(data.price) || isNaN(data.stock)) {
@@ -589,7 +593,7 @@
                 });
                 
                 if (res.ok) {
-                    alert(id ? 'Cập nhật thành công!' : 'Thêm thành công!');
+                    alert(id ? 'Cập nhật thành công!' : 'Thêm sản phẩm thành công!');
                     closeModal();
                     await loadProducts();  // reload lại toàn bộ sản phẩm và giữ bộ lọc
                 } else {
