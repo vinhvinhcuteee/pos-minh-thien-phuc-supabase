@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý sản phẩm - NỆM GỐI GRA CHIẾU</title>
+    <title>Quản lý sản phẩm - CỬA HÀNG MINH THIÊN PHÚC</title>
     <style>
         * {
             margin: 0;
@@ -55,7 +55,7 @@
             padding: 20px;
         }
         
-        /* Thanh công cụ: tìm kiếm + phân loại */
+        /* Thanh công cụ: tìm kiếm + phân loại (bỏ phân loại) */
         .toolbar {
             display: flex;
             flex-wrap: wrap;
@@ -71,7 +71,7 @@
         
         .search-box {
             flex: 2;
-            min-width: 200px;
+            min-width: 250px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -99,27 +99,6 @@
         .search-box span {
             color: #9ca3af;
             font-size: 1rem;
-        }
-        
-        .filter-group {
-            flex: 1;
-            min-width: 180px;
-        }
-        
-        .filter-group select {
-            width: 100%;
-            padding: 10px 12px;
-            border-radius: 32px;
-            border: 1px solid #e5e7eb;
-            background-color: white;
-            font-size: 0.9rem;
-            cursor: pointer;
-            outline: none;
-            transition: 0.2s;
-        }
-        
-        .filter-group select:focus {
-            border-color: #3b82f6;
         }
         
         .btn-add {
@@ -158,7 +137,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 650px;
+            min-width: 600px;
         }
         
         th, td {
@@ -223,7 +202,7 @@
             background: white;
             border-radius: 24px;
             padding: 28px;
-            max-width: 520px;
+            max-width: 500px;
             width: 100%;
             box-shadow: 0 20px 35px -8px rgba(0,0,0,0.2);
         }
@@ -235,7 +214,7 @@
             font-size: 1.5rem;
         }
         
-        .modal-content input, .modal-content select {
+        .modal-content input {
             width: 100%;
             padding: 12px 14px;
             margin-bottom: 16px;
@@ -245,7 +224,7 @@
             transition: 0.2s;
         }
         
-        .modal-content input:focus, .modal-content select:focus {
+        .modal-content input:focus {
             outline: none;
             border-color: #3b82f6;
             box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
@@ -293,20 +272,11 @@
             color: #64748b;
             font-style: italic;
         }
-        
-        .category-badge {
-            background: #e2e8f0;
-            padding: 4px 10px;
-            border-radius: 40px;
-            font-size: 0.75rem;
-            display: inline-block;
-            color: #1e293b;
-        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>QUẢN LÝ SẢN PHẨM - NỆM, GỐI, GRA, CHIẾU</h1>
+        <h1>QUẢN LÝ SẢN PHẨM</h1>
         <div class="nav-links">
             <a href="/">BÁN HÀNG</a>
             <a href="/products">SẢN PHẨM</a>
@@ -318,27 +288,16 @@
     </div>
     
     <div class="container">
-        <!-- Thanh công cụ tích hợp tìm kiếm + phân loại -->
+        <!-- Thanh công cụ: chỉ còn tìm kiếm và nút thêm -->
         <div class="toolbar">
             <div class="search-box">
                 <span>🔍</span>
-                <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên hoặc danh mục..." autocomplete="off">
-            </div>
-            <div class="filter-group">
-                <select id="categoryFilter">
-                    <option value="ALL">Tất cả danh mục</option>
-                    <option value="Nệm">Nệm</option>
-                    <option value="Gối">Gối</option>
-                    <option value="Gra">Gra</option>
-                    <option value="Chiếu">Chiếu</option>
-                    <option value="Drapery">Rèm cửa</option>
-                    <option value="Chăn">Chăn</option>
-                </select>
+                <input type="text" id="searchInput" placeholder="Tìm kiếm sản phẩm..." autocomplete="off">
             </div>
             <button class="btn-add" onclick="openAddModal()">+ THÊM SẢN PHẨM</button>
         </div>
         
-        <!-- Hiển thị thông tin thống kê theo bộ lọc -->
+        <!-- Hiển thị thông tin thống kê -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
             <div class="stats-info" id="statsInfo">Đang tải dữ liệu...</div>
             <div class="stats-info" id="filterInfo"></div>
@@ -353,18 +312,17 @@
                         <th>GIÁ BÁN</th>
                         <th>GIÁ VỐN</th>
                         <th>TỒN KHO</th>
-                        <th>DANH MỤC</th>
                         <th>THAO TÁC</th>
                     </tr>
                 </thead>
                 <tbody id="productsTableBody">
-                    <tr><td colspan="7" class="no-data">Đang tải...</td></tr>
+                    <tr><td colspan="6" class="no-data">Đang tải...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
     
-    <!-- Modal thêm/sửa sản phẩm: danh mục được tùy chỉnh cho nệm, gối, gra, chiếu -->
+    <!-- Modal thêm/sửa sản phẩm (đã bỏ phần chọn danh mục) -->
     <div id="productModal" class="modal">
         <div class="modal-content">
             <h2 id="modalTitle">THÊM SẢN PHẨM</h2>
@@ -373,16 +331,6 @@
             <input type="number" id="productPrice" placeholder="Giá bán (VNĐ)" required>
             <input type="number" id="productCost" placeholder="Giá vốn (VNĐ)" required>
             <input type="number" id="productStock" placeholder="Tồn kho" required>
-            <select id="productCategory">
-                <option value="">-- Chọn danh mục --</option>
-                <option value="Nệm">Nệm</option>
-                <option value="Gối">Gối</option>
-                <option value="Gra">Gra</option>
-                <option value="Chiếu">Chiếu</option>
-                <option value="Drapery">Rèm cửa</option>
-                <option value="Chăn">Chăn</option>
-                <option value="Khác">Khác</option>
-            </select>
             <div class="modal-buttons">
                 <button class="btn-save" onclick="saveProduct()">LƯU</button>
                 <button class="btn-cancel" onclick="closeModal()">HỦY</button>
@@ -400,47 +348,33 @@
             try {
                 const res = await fetch('/api/products');
                 allProducts = await res.json();
-                // Sau khi load, áp dụng bộ lọc hiện tại (tìm kiếm + danh mục)
+                // Sau khi load, áp dụng bộ lọc tìm kiếm
                 applyFiltersAndRender();
             } catch (error) {
                 console.error("Lỗi tải sản phẩm:", error);
                 const tbody = document.getElementById('productsTableBody');
-                tbody.innerHTML = '<tr><td colspan="7" class="no-data">Không thể tải dữ liệu, vui lòng kiểm tra kết nối</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="no-data">Không thể tải dữ liệu, vui lòng kiểm tra kết nối</td></tr>';
                 document.getElementById('statsInfo').innerText = 'Lỗi kết nối';
             }
         }
         
-        // Lấy giá trị tìm kiếm và danh mục
+        // Lấy giá trị tìm kiếm
         function getSearchTerm() {
             return document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
         }
         
-        function getCategoryValue() {
-            return document.getElementById('categoryFilter')?.value || 'ALL';
-        }
-        
-        // Hàm lọc sản phẩm dựa trên tìm kiếm (tên, danh mục) và dropdown phân loại
+        // Hàm lọc sản phẩm dựa trên tìm kiếm (tên sản phẩm)
         function filterProducts() {
             const searchTerm = getSearchTerm();
-            const categoryFilter = getCategoryValue();
             
-            let filtered = [...allProducts];
-            
-            // Lọc theo từ khóa (tên sản phẩm hoặc danh mục)
-            if (searchTerm !== '') {
-                filtered = filtered.filter(p => {
-                    const productName = (p.name || '').toLowerCase();
-                    const productCategory = (p.category || '').toLowerCase();
-                    return productName.includes(searchTerm) || productCategory.includes(searchTerm);
-                });
+            if (searchTerm === '') {
+                return [...allProducts];
             }
             
-            // Lọc theo danh mục (nếu không phải ALL)
-            if (categoryFilter !== 'ALL') {
-                filtered = filtered.filter(p => (p.category || '') === categoryFilter);
-            }
-            
-            return filtered;
+            return allProducts.filter(p => {
+                const productName = (p.name || '').toLowerCase();
+                return productName.includes(searchTerm);
+            });
         }
         
         // Cập nhật thống kê hiển thị
@@ -460,24 +394,19 @@
             
             if (filteredCount !== totalOriginal) {
                 filterInfoDiv.innerHTML = `Hiển thị ${filteredCount} / ${totalOriginal} sản phẩm`;
+            } else if (getSearchTerm() !== '') {
+                filterInfoDiv.innerHTML = `Kết quả tìm kiếm: ${filteredCount} sản phẩm`;
             } else {
-                const categorySelected = getCategoryValue();
-                if (categorySelected !== 'ALL') {
-                    filterInfoDiv.innerHTML = `Danh mục: ${categorySelected} (${filteredCount} sản phẩm)`;
-                } else if (getSearchTerm() !== '') {
-                    filterInfoDiv.innerHTML = `Kết quả tìm kiếm: ${filteredCount} sản phẩm`;
-                } else {
-                    filterInfoDiv.innerHTML = `Tất cả sản phẩm`;
-                }
+                filterInfoDiv.innerHTML = `Tất cả sản phẩm`;
             }
         }
         
-        // Render bảng sản phẩm dựa trên mảng đã lọc (giữ nguyên logic hiển thị)
+        // Render bảng sản phẩm dựa trên mảng đã lọc
         function renderProductsTable(productsToRender) {
             const tbody = document.getElementById('productsTableBody');
             
             if (!productsToRender.length) {
-                tbody.innerHTML = '<tr><td colspan="7" class="no-data">Không có sản phẩm nào phù hợp</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="no-data">Không có sản phẩm nào phù hợp</td></tr>';
                 return;
             }
             
@@ -488,7 +417,6 @@
                     <td>${formatMoney(p.price)}</td>
                     <td>${formatMoney(p.cost_price || 0)}</td>
                     <td>${p.stock}</td>
-                    <td>${p.category ? `<span class="category-badge">${escapeHtml(p.category)}</span>` : '<span class="category-badge">Chưa phân loại</span>'}</td>
                     <td>
                         <button class="btn-edit" onclick="editProduct(${p.id})">SỬA</button>
                         <button class="btn-delete" onclick="deleteProduct(${p.id})">XÓA</button>
@@ -497,31 +425,25 @@
             `).join('');
         }
         
-        // Hàm chính kết hợp filter và render (giữ nguyên biến toàn cục)
+        // Hàm chính kết hợp filter và render
         function applyFiltersAndRender() {
             const filtered = filterProducts();
             updateStatsInfo(filtered);
             renderProductsTable(filtered);
         }
         
-        // Gắn sự kiện realtime cho ô tìm kiếm & dropdown phân loại (thay đổi lập tức cập nhật)
+        // Gắn sự kiện realtime cho ô tìm kiếm
         function bindFilterEvents() {
             const searchInput = document.getElementById('searchInput');
-            const categorySelect = document.getElementById('categoryFilter');
             
             if (searchInput) {
                 searchInput.addEventListener('input', () => {
                     applyFiltersAndRender();
                 });
             }
-            if (categorySelect) {
-                categorySelect.addEventListener('change', () => {
-                    applyFiltersAndRender();
-                });
-            }
         }
         
-        // ---------- CÁC HÀM THÊM, SỬA, XÓA (GIỮ NGUYÊN LOGIC GỐC, KHÔNG THAY ĐỔI) ----------
+        // ---------- CÁC HÀM THÊM, SỬA, XÓA (GIỮ NGUYÊN LOGIC GỐC) ----------
         function openAddModal() {
             document.getElementById('modalTitle').innerText = 'THÊM SẢN PHẨM';
             document.getElementById('productId').value = '';
@@ -529,14 +451,11 @@
             document.getElementById('productPrice').value = '';
             document.getElementById('productCost').value = '';
             document.getElementById('productStock').value = '';
-            // set lại select về mặc định (chọn placeholder)
-            const categorySelect = document.getElementById('productCategory');
-            if(categorySelect) categorySelect.value = '';
             document.getElementById('productModal').classList.add('active');
         }
         
         async function editProduct(id) {
-            // Lấy lại danh sách mới nhất để tránh conflict (gọi API)
+            // Lấy lại danh sách mới nhất để tránh conflict
             const res = await fetch('/api/products');
             const products = await res.json();
             const product = products.find(p => p.id === id);
@@ -548,13 +467,6 @@
                 document.getElementById('productPrice').value = product.price;
                 document.getElementById('productCost').value = product.cost_price || 0;
                 document.getElementById('productStock').value = product.stock;
-                // Cập nhật danh mục lên select
-                const catSelect = document.getElementById('productCategory');
-                if (catSelect && product.category) {
-                    catSelect.value = product.category;
-                } else if (catSelect) {
-                    catSelect.value = '';
-                }
                 document.getElementById('productModal').classList.add('active');
             } else {
                 alert('Không tìm thấy sản phẩm!');
@@ -563,18 +475,12 @@
         
         async function saveProduct() {
             const id = document.getElementById('productId').value;
-            // Lấy giá trị từ select category
-            const categoryValue = document.getElementById('productCategory').value;
-            
-            // Kiểm tra nếu danh mục trống thì vẫn cho phép lưu (để tránh lỗi nhập liệu)
-            const finalCategory = categoryValue && categoryValue.trim() !== "" ? categoryValue : "";
             
             const data = {
                 name: document.getElementById('productName').value,
                 price: parseInt(document.getElementById('productPrice').value),
                 cost_price: parseInt(document.getElementById('productCost').value) || 0,
-                stock: parseInt(document.getElementById('productStock').value),
-                category: finalCategory
+                stock: parseInt(document.getElementById('productStock').value)
             };
             
             if (!data.name || isNaN(data.price) || isNaN(data.stock)) {
@@ -595,7 +501,7 @@
                 if (res.ok) {
                     alert(id ? 'Cập nhật thành công!' : 'Thêm sản phẩm thành công!');
                     closeModal();
-                    await loadProducts();  // reload lại toàn bộ sản phẩm và giữ bộ lọc
+                    await loadProducts();  // reload lại toàn bộ sản phẩm
                 } else {
                     const errorMsg = await res.text();
                     alert(`Có lỗi xảy ra: ${errorMsg || 'Vui lòng thử lại'}`);
@@ -637,7 +543,7 @@
             return div.innerHTML;
         }
         
-        // Khởi tạo trang: load dữ liệu và gắn sự kiện tìm kiếm + phân loại
+        // Khởi tạo trang: load dữ liệu và gắn sự kiện tìm kiếm
         async function init() {
             await loadProducts();
             bindFilterEvents();
