@@ -42,18 +42,24 @@ class Database:
             return []
 
     def add_product(self, data):
-        cursor = self.conn.cursor()
+        """Thêm sản phẩm mới vào Supabase"""
         try:
-            cursor.execute('''
-                INSERT INTO products (name, price, cost_price, stock, category)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (data['name'], data['price'], data.get('cost_price', 0), 
-                  data.get('stock', 0), data.get('category', '')))
-            self.conn.commit()
-            return cursor.lastrowid
+            result = self.client.table('products').insert({
+                'name': data['name'],
+                'price': data['price'],
+                'cost_price': data.get('cost_price', 0),
+                'stock': data.get('stock', 0),
+                'category': data.get('category', '')
+            }).execute()
+        
+            if result.data:
+                print(f"✅ Thêm sản phẩm thành công: {result.data[0]['id']}")
+                return result.data[0]['id']
+            else:
+                print(f"❌ Không có dữ liệu trả về khi thêm sản phẩm")
+                return None
         except Exception as e:
             print(f"❌ Lỗi add_product: {e}")
-            self.conn.rollback()
             return None
 
     def update_product(self, product_id, data):
