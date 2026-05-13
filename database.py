@@ -40,13 +40,45 @@ class Database:
         except Exception as e:
             print(f"Lỗi get_all_products: {e}")
             return []
-
+            
     def add_product(self, data):
+        """Thêm sản phẩm mới vào Supabase"""
         try:
-            result = self.client.table('products').insert(data).execute()
-            return result.data[0]['id'] if result.data else None
+            print(f"🔥 add_product nhận data: {data}")
+        
+            # Đảm bảo dữ liệu có đủ các trường
+            product_data = {
+                'name': str(data.get('name', '')),
+                'price': int(data.get('price', 0)),
+                'cost_price': int(data.get('cost_price', 0)),
+                'stock': int(data.get('stock', 0)),
+                'category': str(data.get('category', ''))
+            }
+        
+            print(f"🔥 Dữ liệu sau khi xử lý: {product_data}")
+        
+        # Kiểm tra kết nối
+            if not self.client:
+                print("❌ Chưa kết nối Supabase!")
+                return None
+        
+        # Thực hiện insert
+            result = self.client.table('products').insert(product_data).execute()
+        
+            print(f"🔥 Kết quả từ Supabase: {result}")
+        
+            if result.data and len(result.data) > 0:
+                product_id = result.data[0].get('id')
+                print(f"✅ Thêm thành công! ID: {product_id}")
+                return product_id
+            else:
+                print("❌ Supabase không trả về dữ liệu")
+                return None
+            
         except Exception as e:
-            print(f"Lỗi add_product: {e}")
+            print(f"❌ Lỗi add_product: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     def update_product(self, product_id, data):
