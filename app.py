@@ -68,19 +68,39 @@ def get_products():
 def add_product():
     try:
         data = request.json
+        print("=" * 50)
+        print(f"📦 Dữ liệu từ client: {data}")
+        
+        # Kiểm tra dữ liệu bắt buộc
+        if not data.get('name'):
+            return jsonify({'success': False, 'error': 'Thiếu tên sản phẩm'}), 400
+        
+        if not data.get('price'):
+            return jsonify({'success': False, 'error': 'Thiếu giá sản phẩm'}), 400
+        
+        # Chuẩn bị data - KHÔNG cần ép kiểu ở đây nữa, để database.py xử lý
         product_data = {
             'name': data['name'],
-            'price': int(data['price']),
-            'cost_price': int(data.get('cost_price', 0)),
-            'stock': int(data.get('stock', 0)),
+            'price': data['price'],
+            'cost_price': data.get('cost_price', 0),
+            'stock': data.get('stock', 0),
             'category': data.get('category', '')
         }
+        
+        print(f"📦 Gửi xuống database: {product_data}")
+        
         product_id = db.add_product(product_data)
+        
+        print(f"📦 Kết quả: product_id = {product_id}")
+        
         if product_id:
             return jsonify({'success': True, 'id': product_id})
         else:
             return jsonify({'success': False, 'error': 'Không thể thêm sản phẩm'}), 500
     except Exception as e:
+        print(f"❌ Lỗi: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/products/<int:product_id>', methods=['PUT'])
