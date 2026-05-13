@@ -68,30 +68,27 @@ def get_products():
 def add_product():
     try:
         data = request.json
-        print("=" * 50)
-        print(f"📦 Dữ liệu từ client: {data}")
+        print("=" * 60)
+        print(f"📦 RAW DATA từ client: {data}")
+        print(f"📦 Các keys trong data: {list(data.keys()) if data else 'None'}")
         
-        # Kiểm tra dữ liệu bắt buộc
-        if not data.get('name'):
-            return jsonify({'success': False, 'error': 'Thiếu tên sản phẩm'}), 400
+        # Nếu có trường 'id' thì xóa ngay lập tức
+        if data and 'id' in data:
+            print("⚠️⚠️⚠️ PHÁT HIỆN trường 'id'! Đang xóa...")
+            del data['id']
+            print(f"📦 Dữ liệu sau khi xóa id: {data}")
         
-        if not data.get('price'):
-            return jsonify({'success': False, 'error': 'Thiếu giá sản phẩm'}), 400
-        
-        # Chuẩn bị data - KHÔNG cần ép kiểu ở đây nữa, để database.py xử lý
         product_data = {
-            'name': data['name'],
-            'price': data['price'],
-            'cost_price': data.get('cost_price', 0),
-            'stock': data.get('stock', 0),
+            'name': data.get('name'),
+            'price': int(data.get('price', 0)),
+            'cost_price': int(data.get('cost_price', 0)),
+            'stock': int(data.get('stock', 0)),
             'category': data.get('category', '')
         }
         
-        print(f"📦 Gửi xuống database: {product_data}")
+        print(f"📦 Dữ liệu gửi xuống database: {product_data}")
         
         product_id = db.add_product(product_data)
-        
-        print(f"📦 Kết quả: product_id = {product_id}")
         
         if product_id:
             return jsonify({'success': True, 'id': product_id})
