@@ -562,22 +562,15 @@
         
         async function saveProduct() {
             const id = document.getElementById('productId').value;
-            // Lấy giá trị từ select category
-            const categoryValue = document.getElementById('productCategory').value;
-            
             const data = {
                 name: document.getElementById('productName').value,
                 price: parseInt(document.getElementById('productPrice').value),
                 cost_price: parseInt(document.getElementById('productCost').value) || 0,
                 stock: parseInt(document.getElementById('productStock').value),
-                category: categoryValue || ''   // nếu không chọn thì lưu chuỗi rỗng
+                category: document.getElementById('productCategory').value
             };
-            
-            if (!data.name || isNaN(data.price) || isNaN(data.stock)) {
-                alert('Vui lòng nhập đầy đủ thông tin: Tên, Giá bán, Tồn kho!');
-                return;
-            }
-            
+    // ⚠️ KHÔNG thêm dòng: data.id = id
+    
             const url = id ? `/api/products/${id}` : '/api/products';
             const method = id ? 'PUT' : 'POST';
             
